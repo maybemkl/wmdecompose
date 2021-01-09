@@ -47,29 +47,39 @@ class DocPair():
         self.vocab = []
     
     def _getvocab(self):
-        self.vocab = list(set(self.source.words + self.sink.words))
+        self.vocab = self.source.words + self.sink.words
+        
+        ## SECOND APPROACH:
+        # self.vocab = list(set(self.source.words + self.sink.words))
         return len(self.vocab), self.vocab
     
     def getsignature(self):
         self._getvocab()
-        #self.sig1, vec1 = map(list,zip(*self._getWeightsAndVecs(self.doc1, vocab)))
-        #self.sig2, vec2 = map(list,zip(*self._getWeightsAndVecs(self.doc2, vocab)))
-        #self.vecs = 
-        self.sig1 = [self.source.getweight(w) if w in self.source.words else 0.0 for w in self.vocab]
-        self.sig2 = [self.sink.getweight(w) if w in self.sink.words else 0.0 for w in self.vocab]
-        self.vecs = [self.source.getvec(w) if w in self.source.words else self.sink.getvec(w) for w in self.vocab]
-     
+
+        self.sig1 = np.append(self.source.weights, np.zeros(len(self.vocab)-len(self.source.weights)))
+        self.sig2 = np.append(np.zeros(len(self.vocab)-len(self.sink.weights)), self.sink.weights)
+        self.vecs = self.source.vecs + self.sink.vecs
+        self.idx1 = [idx for idx, s in enumerate(self.sig1) if s>0]
+        self.idx2 = [idx for idx, s in enumerate(self.sig2) if s>0]
+        
+        ## SECOND APPROACH
+        #self.sig1 = [self.source.getweight(w) if w in self.source.words else 0.0 for w in self.vocab]
+        #self.sig2 = [self.sink.getweight(w) if w in self.sink.words else 0.0 for w in self.vocab]
+        #self.vecs = [self.source.getvec(w) if w in self.source.words else self.sink.getvec(w) for w in self.vocab]
+        #self.idx1 = [idx for idx, s in enumerate(self.sig1) if s>0]
+        #self.idx2 = [idx for idx, s in enumerate(self.sig2) if s>0]
+
     def emd(self):
         self.w2v_distances = euclidean_distances(self.vecs, self.vecs)
-        w2v_emd, w2v_flow = emd_with_flow(np.array(self.sig1, dtype=np.double), 
+        self.w2v_emd, self.w2v_flow = emd_with_flow(np.array(self.sig1, dtype=np.double), 
                                           np.array(self.sig2, dtype=np.double), 
                                           np.array(self.w2v_distances, dtype=np.double))
-        return w2v_emd, w2v_flow
-        
-  #  def getpile(self):
-        
-   # def _getWeightsAndVecs(self, doc, vocab):
-   #     weights, vecs = [(doc.getweight(w), doc.getvec(w)) if w in doc.words else 0.0 for w in vocab]
-   #     print(weights)
-   #     print(vecs)
-   #     return weights, vecs
+        return self.w2v_emd, self.w2v_flow
+    
+    def getCost(self):
+        cost_m = self.w2v_flow*self.w2v_distances
+        cost_m = cost_m[np.ix_(self.idx1,self.idx2)]
+        source_cost = np.sum(cost_m, axis=1).round(5)
+        sink_cost = np.sum(cost_m, axis=0).round(5)
+        self.source_cost = dict(zip(self.source.words, list(source_cost)))
+        self.sink_cost = dict(zip(self.sink.words, list(sink_cost)))
