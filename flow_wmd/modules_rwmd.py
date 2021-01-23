@@ -41,33 +41,56 @@ class WMD():
         self.X2_sig = np.concatenate((np.zeros(len(X1.idxs)), 
                                       X2.nbow[0,X2.idxs]))
         
-    def wmd(self):
-        wmd = emd(np.array(self.X1_sig, dtype=np.double), 
-                  np.array(self.X2_sig, dtype=np.double), 
-                  np.array(self.C, dtype=np.double))
-        return wmd
-    def wmd_with_flow(self, idx2word):    
-        self.wmd, self.flow = emd_with_flow(np.array(self.X1_sig, dtype=np.double), 
-                                    np.array(self.X2_sig, dtype=np.double), 
-                                    np.array(self.C, dtype=np.double))
-        #m = np.array(self.wmd_wf[1])[:len(self.X1.idxs),len(self.X1.idxs):]
-        w1 = [idx2word[idx] for idx in self.X1.idxs]
-        w2 = [idx2word[idx] for idx in self.X2.idxs]
-        cost_m = self.flow*self.C
-        cost_m = cost_m[:len(self.X1.idxs),len(self.X1.idxs):].round(5)
-        return (self.wmd,self.flow,cost_m, w1, w2)
+    def get_distance(self, idx2word = None, return_flow = False):
+        if not return_flow:
+            wmd = emd(np.array(self.X1_sig, dtype=np.double), 
+                      np.array(self.X2_sig, dtype=np.double), 
+                      np.array(self.C, dtype=np.double))
+            
+            return wmd
+        
+        elif return_flow:
+            if idx2word == None:
+                print("idx2word argument is missing.")
+            else:
+                wmd, flow = emd_with_flow(np.array(self.X1_sig, dtype=np.double), 
+                                          np.array(self.X2_sig, dtype=np.double), 
+                                          np.array(self.C, dtype=np.double))
+                #m = np.array(self.wmd_wf[1])[:len(self.X1.idxs),len(self.X1.idxs):]
+                w1 = [idx2word[idx] for idx in self.X1.idxs]
+                w2 = [idx2word[idx] for idx in self.X2.idxs]
+                cost_m = flow*self.C
+                cost_m = cost_m[:len(self.X1.idxs),len(self.X1.idxs):].round(5)
+                return (wmd,flow,cost_m, w1, w2)
 
-class flow_WMD():
+            
+class WMDCluster():
     def __init__(self,X1,X2,E,idx2word):
         self.flows = []
-        self.returns = []
-        for idx1, doc1 in enumerate(X1):
-            
-            for idx2, doc2 in enumerate(X2):
-                
-                self.flows.append(WMD(doc1, doc2, E).wmd_with_flow(idx2word))
-                
-    
+        #self.distances = []
+        self.distances = np.zeros((len(X1), len(X2)))
+        self.X1 = X1
+        self.X2 = X2
+        self.E = E
+        self.idx2word = idx2word
+        
+    def get_distances(self, return_flow = False):
+        if not return_flow:
+            for idx1, doc1 in enumerate(self.X1):
+                for idx2, doc2 in enumerate(self.X2):
+                    wmd = WMD(doc1, doc2, self.E).get_distance()
+                    #self.distances.append({'idx1':idx1, 
+                    #                       'idx2':idx2, 
+                    #                       'wmd':wmd})
+                    self.distances[idx1, idx2] = wmd
+            print(self.distances)
+                    
+        elif return_flow:
+            for idx1, doc1 in enumerate(self.X1):
+                for idx2, doc2 in enumerate(self.X2):
+                    if not return_flow:
+                        self.flows.append(WMD(doc1, doc2, self.E).get_distance(self.idx2word, return_flow = True))
+            return self.flows
 
 class LC_RWMD():
     def __init__(self,X1, X2,X1_nbow,X2_nbow,E):
@@ -100,7 +123,9 @@ class LC_RWMD():
             WMDs = []
             for idx2 in indeces:
                 doc2 = self.X2[idx2]
-                wmd = WMD(doc1, doc2, self.E).wmd()
+                wmd = WMD(doc1, 
+                          doc2, 
+                          self.E).get_distance()
                 WMDs.append(wmd)
             L = max(WMDs)
             self.Ls.append((idx1, L))
@@ -113,7 +138,7 @@ class LC_RWMD():
                 if row < L[1]:
                     wmd = WMD(self.X1[L[0]], 
                               self.X2[idx2],
-                              self.E).wmd()
+                              self.E).get_distance()
                     self.wmd_s.append(wmd)
                 else:
                     pass
