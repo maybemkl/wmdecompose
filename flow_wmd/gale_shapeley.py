@@ -29,14 +29,14 @@ class Matcher():
             if not fiance:
                 # She's free
                 engaged[gal] = guy
-                print("  %s and %s" % (guy, gal))
+                #print("  %s and %s" % (guy, gal))
             else:
                 # The bounder proposes to an engaged lass!
                 galslist = galprefers2[gal]
                 if galslist.index(fiance) > galslist.index(guy):
                     # She prefers new guy
                     engaged[gal] = guy
-                    print("  %s dumped %s for %s" % (gal, fiance, guy))
+                    #print("  %s dumped %s for %s" % (gal, fiance, guy))
                     if guyprefers2[fiance]:
                         # Ex has more girls to try
                         guysfree.append(fiance)
