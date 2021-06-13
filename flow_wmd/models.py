@@ -125,7 +125,7 @@ class WMDPairs():
                 doc2 = self.X2[self.pairs[key]]
                 wmd = WMD(doc1, doc2, self.E).get_distance()
                 self.distances[key, self.pairs[key]] = wmd
-            return self.distances
+            #return self.distances
                     
         elif return_flow:
             for idx, key in enumerate(self.pairs.keys()):
@@ -151,7 +151,9 @@ class WMDPairs():
             self.wc_X2[w] += np.sum(cost_m[:,idx])
             if sum_clusters:
                 self.cc_X2[self.w2c[w]] += cost
-            
+                
+    #def output_clusters():
+   
 class LC_RWMD():
     def __init__(self,X1,X2,X1_nbow,X2_nbow,E)->None:
         self.D1, self.D2 = [], []
