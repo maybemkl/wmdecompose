@@ -1,7 +1,7 @@
 import numpy as np
 
 class Document():
-    def __init__(self, words, nbow, word2idx, E):
+    def __init__(self, words:list, nbow:object, word2idx:dict, E:np.array):
         self.words = words
         #self.nbow = vectorizer.transform([" ".join(words)])
         self.nbow = nbow.toarray()
