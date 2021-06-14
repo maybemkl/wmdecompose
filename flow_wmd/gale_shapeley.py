@@ -1,9 +1,10 @@
 import copy
+import numpy as np
  
 # Adapted from: https://rosettacode.org/wiki/Stable_marriage_problem#Python
     
 class Matcher():
-    def __init__(self, D):
+    def __init__(self, D:np.array):
         X1_pref = {str(idx): list(row.argsort()) for (idx, row) in enumerate(D)}
         X2_pref = {str(idx): list(row.argsort()) for (idx, row) in enumerate(D.T)}
         
@@ -16,7 +17,7 @@ class Matcher():
         self.guys = sorted(X1_pref.keys())
         self.gals = sorted(X2_pref.keys())
 
-    def matchmaker(self):
+    def matchmaker(self) -> dict:
         guysfree = self.guys[:]
         engaged  = {}
         guyprefers2 = copy.deepcopy(self.guyprefers)
@@ -49,7 +50,7 @@ class Matcher():
         engaged_int = {int(k): int(engaged[k]) for k in engaged.keys()}
         return engaged_int
         
-    def check(self):
+    def check(self) -> bool:
         inverseengaged = dict((v,k) for k,v in self.engaged.items())
         for she, he in self.engaged.items():
             shelikes = self.galprefers[she]
