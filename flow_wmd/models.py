@@ -91,7 +91,7 @@ class WMDManyToMany():
             self.wc_X2[w] += np.sum(cost_m[:,idx])
             
 class WMDPairs():
-    def __init__(self,X1,X2,pairs,E,idx2word) -> None:
+    def __init__(self,X1:list,X2:list,pairs:dict,E:np.ndarray,idx2word:dict) -> None:
         self.flows = []
         self.wc_X1 = self._word_dict(X1)
         self.wc_X2 = self._word_dict(X2)
@@ -114,7 +114,7 @@ class WMDPairs():
                       c2w: dict = {}) -> None:
         if sum_clusters:
             self.cc_X1 = {k: 0 for k in c2w.keys()}
-            self.cc_X2 = self.cc_X1 
+            self.cc_X2 = {k: 0 for k in c2w.keys()}
             self.w2c = w2c
         
         if not return_flow:
@@ -137,23 +137,30 @@ class WMDPairs():
                                                                               return_flow = True)
                 self._add_word_costs(w1, w2, cost_m, sum_clusters)
                 self.distances[key, self.pairs[key]] = wmd 
+                #print(list(self.cc_X1.keys())[:10], list(self.cc_X1.values())[:10])
+                #print(list(self.cc_X2.keys())[:10], list(self.cc_X2.values())[:10])
             #return self.distances, self.wc_X1, self.wc_X2
 
     def _add_word_costs(self, w1: list, w2: list, cost_m, sum_clusters:bool)->None:
+        #print(w1)
         for idx,w in enumerate(w1):
             cost = np.sum(cost_m[idx,:])
             self.wc_X1[w] += cost
             if sum_clusters:
                 self.cc_X1[self.w2c[w]] += cost
-            
+                #print(idx, w, self.cc_X1[self.w2c[w]], cost)
+        
+        #print("\n")
+        #print(w2)
         for idx,w in enumerate(w2):
             cost = np.sum(cost_m[:,idx])
-            self.wc_X2[w] += np.sum(cost_m[:,idx])
+            self.wc_X2[w] += cost
             if sum_clusters:
                 self.cc_X2[self.w2c[w]] += cost
+                #print(idx, w, self.cc_X2[self.w2c[w]], cost)
                 
-    #def output_clusters():
-   
+
+    
 class LC_RWMD():
     def __init__(self,X1,X2,X1_nbow,X2_nbow,E)->None:
         self.D1, self.D2 = [], []
