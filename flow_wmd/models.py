@@ -115,6 +115,7 @@ class WMDPairs():
                       c2w: dict = {},
                       thread = False) -> None:
         self.return_flow = return_flow
+        self.sum_clusters = sum_clusters
         
         if sum_clusters:
             self.cc_X1 = {k: 0 for k in c2w.keys()}
@@ -129,15 +130,10 @@ class WMDPairs():
                     futures.append(future)
                     if idx % 100 == 0:
                         print(f"Calculated distances between approximately {idx} documents.")
-
-                for future in futures:
-                    try:
-                        print(future.result())
-                    except Exception as e:
-                        print(e)
         
         else:
             for idx, key in enumerate(self.pairs.keys()):
+                self._get_wmd(key)
                 if idx % 100 == 0:
                     print(f"Calculated distances between {idx} documents.")
 
@@ -147,17 +143,17 @@ class WMDPairs():
         if self.return_flow:
             wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E).get_distance(self.idx2word, 
                                                                           return_flow = True)
-            self._add_word_costs(w1, w2, cost_m, sum_clusters)
+            self._add_word_costs(w1, w2, cost_m)
         else:
             wmd = WMD(doc1, doc2, self.E).get_distance()
         self.distances[key, self.pairs[key]] = wmd 
     
-    def _add_word_costs(self, w1: list, w2: list, cost_m, sum_clusters:bool)->None:
+    def _add_word_costs(self, w1: list, w2: list, cost_m)->None:
         #print(w1)
         for idx,w in enumerate(w1):
             cost = np.sum(cost_m[idx,:])
             self.wc_X1[w] += cost
-            if sum_clusters:
+            if self.sum_clusters:
                 self.cc_X1[self.w2c[w]] += cost
                 #print(idx, w, self.cc_X1[self.w2c[w]], cost)
         
@@ -166,11 +162,23 @@ class WMDPairs():
         for idx,w in enumerate(w2):
             cost = np.sum(cost_m[:,idx])
             self.wc_X2[w] += cost
-            if sum_clusters:
+            if self.sum_clusters:
                 self.cc_X2[self.w2c[w]] += cost
                 #print(idx, w, self.cc_X2[self.w2c[w]], cost)
                 
+    def get_differences(self) -> None:
+        self.wc_X1_diff = dict(self.wc_X1)
+        self.wc_X2_diff = dict(self.wc_X2)
+        self.wc_X1_diff = self._count_diff(self.wc_X1, self.wc_X2, self.wc_X1_diff)
+        self.wc_X2_diff = self._count_diff(self.wc_X2, self.wc_X1, self.wc_X2_diff)
 
+    def _count_diff(self, cluster1, cluster2, output) -> dict:
+        for k, v in cluster1.items():
+            try:
+                output[k] = v - cluster2[k]
+            except:
+                output[k] = v
+        return output
     
 class LC_RWMD():
     def __init__(self,X1,X2,X1_nbow,X2_nbow,E)->None:
