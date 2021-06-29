@@ -1,4 +1,5 @@
 from collections import Counter, namedtuple
+from concurrent.futures import ThreadPoolExecutor
 from pyemd import emd, emd_with_flow
 from sklearn.metrics import euclidean_distances
 
@@ -111,36 +112,46 @@ class WMDPairs():
                       return_flow: bool = False, 
                       sum_clusters: bool = False, 
                       w2c: list = [], 
-                      c2w: dict = {}) -> None:
+                      c2w: dict = {},
+                      thread = False) -> None:
+        self.return_flow = return_flow
+        
         if sum_clusters:
             self.cc_X1 = {k: 0 for k in c2w.keys()}
             self.cc_X2 = {k: 0 for k in c2w.keys()}
             self.w2c = w2c
         
-        if not return_flow:
-            for idx, key in enumerate(self.pairs.keys()):
-                if idx % 100 == 0:
-                    print(f"Calculated distances between {idx} documents.")
-                doc1 = self.X1[key]
-                doc2 = self.X2[self.pairs[key]]
-                wmd = WMD(doc1, doc2, self.E).get_distance()
-                self.distances[key, self.pairs[key]] = wmd
-            #return self.distances
-                    
-        elif return_flow:
-            for idx, key in enumerate(self.pairs.keys()):
-                if idx % 100 == 0:
-                    print(f"Calculated distances between {idx} documents.")
-                doc1 = self.X1[key]
-                doc2 = self.X2[self.pairs[key]]
-                wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E).get_distance(self.idx2word, 
-                                                                              return_flow = True)
-                self._add_word_costs(w1, w2, cost_m, sum_clusters)
-                self.distances[key, self.pairs[key]] = wmd 
-                #print(list(self.cc_X1.keys())[:10], list(self.cc_X1.values())[:10])
-                #print(list(self.cc_X2.keys())[:10], list(self.cc_X2.values())[:10])
-            #return self.distances, self.wc_X1, self.wc_X2
+        if thread:
+            futures = []
+            with ThreadPoolExecutor(max_workers=15) as executor:
+                for idx, key in enumerate(self.pairs.keys()):
+                    future = executor.submit(self._get_wmd, key)
+                    futures.append(future)
+                    if idx % 100 == 0:
+                        print(f"Calculated distances between approximately {idx} documents.")
 
+                for future in futures:
+                    try:
+                        print(future.result())
+                    except Exception as e:
+                        print(e)
+        
+        else:
+            for idx, key in enumerate(self.pairs.keys()):
+                if idx % 100 == 0:
+                    print(f"Calculated distances between {idx} documents.")
+
+    def _get_wmd(self, key):
+        doc1 = self.X1[key]
+        doc2 = self.X2[self.pairs[key]]
+        if self.return_flow:
+            wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E).get_distance(self.idx2word, 
+                                                                          return_flow = True)
+            self._add_word_costs(w1, w2, cost_m, sum_clusters)
+        else:
+            wmd = WMD(doc1, doc2, self.E).get_distance()
+        self.distances[key, self.pairs[key]] = wmd 
+    
     def _add_word_costs(self, w1: list, w2: list, cost_m, sum_clusters:bool)->None:
         #print(w1)
         for idx,w in enumerate(w1):
