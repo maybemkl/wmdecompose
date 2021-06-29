@@ -1,6 +1,16 @@
-import pandas as pd
+from bs4 import BeautifulSoup
+from collections import Counter
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize.toktok import ToktokTokenizer
 
-def output_clusters(wc:list, cc:list, c2w:dict, n_clusters:int = 10, n_words:int = 10) -> pd.DataFrame:
+import pandas as pd
+import re
+
+def output_clusters(wc:list, cc:list, c2w:dict, n_clusters:int = 10, n_words:int = 10, average:bool=False,labels:list=[]) -> pd.DataFrame:
+    #if average:
+    #    lbl_counts = Counter(list(labels))
+    #    cc = [lbl_counts]
+    
     top_clusters = [k for k, v in sorted(cc, key=lambda item: item[1], reverse=True)[:n_clusters]]
     word_rankings = {k: v for k, v in sorted(wc, key=lambda item: item[1], reverse=True)}
     keywords = []
@@ -20,7 +30,7 @@ def read_1w_corpus(name, sep="\t"):
         yield line.split(sep)
 
 #removing the oov words
-def remove_oov(text):
+def remove_oov(text, tokenizer, oov):
     tokens = tokenizer.tokenize(text)
     tokens = [token.strip() for token in tokens]
     filtered_tokens = [token for token in tokens if token not in oov]
@@ -33,7 +43,12 @@ def take(n:int, iterable:iter) -> list:
     "Return first n items of the iterable as a list"
     return list(islice(iterable, n))
 
-def tokenize(text):
+def tokenize(text, tokenizer):
+    tokens = tokenizer.tokenize(text)
+    return tokens
+
+def tfidf_tokenize(text):
+    tokenizer=ToktokTokenizer()
     tokens = tokenizer.tokenize(text)
     return tokens
 
@@ -68,7 +83,7 @@ def simple_lemmatizer(text):
     return text
 
 #removing the stopwords
-def remove_stopwords(text, stopword_list, is_lower_case=False):
+def remove_stopwords(text, stopword_list, tokenizer, is_lower_case=False):
     tokens = tokenizer.tokenize(text)
     tokens = [token.strip() for token in tokens]
     if is_lower_case:
