@@ -1,10 +1,24 @@
 from bs4 import BeautifulSoup
 from collections import Counter
+from itertools import islice
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize.toktok import ToktokTokenizer
 
 import pandas as pd
 import re
+
+def get_phrases(sentences:list, min_count:int=5, threshold:int=100) -> list:
+    bigram = Phrases(sentences, min_count=min_count, threshold = threshold) # higher threshold fewer phrases.
+    trigram = Phrases(bigram[sentences])  
+
+    # 'Phraser' is a wrapper that makes 'Phrases' run faster
+    bigram_phraser = Phraser(bigram)
+    trigram_phraser = Phraser(trigram)
+
+    phrased_bi = [b for b in bigram[sentences]]
+    phrased_tri = [t for t in trigram[[b for b in bigram[sentences]]]]
+    
+    return phrased_tri
 
 def output_clusters(wc:list, cc:list, c2w:dict, n_clusters:int = 10, n_words:int = 10, average:bool=False,labels:list=[]) -> pd.DataFrame:
     #if average:
