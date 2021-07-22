@@ -1,11 +1,40 @@
 from bs4 import BeautifulSoup
 from collections import Counter
+from gensim.models.phrases import Phrases, Phraser
 from itertools import islice
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize.toktok import ToktokTokenizer
+from sklearn.metrics import silhouette_score
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import re
+
+def kmeans_search(X, K):
+    sum_of_squared_distances = []
+    silhouette = []
+    for k in K:
+        km = cluster.KMeans(n_clusters=k,max_iter=300)
+        km = km.fit(X)
+        sum_of_squared_distances.append(km.inertia_)
+        cluster_labels = km.fit_predict(X)
+        silhouette_avg = silhouette_score(X, cluster_labels)
+        silhouette.append(silhouette_avg)
+        if k % 5 == 0:
+            print("For n_clusters =", k,
+              "The average silhouette_score is :", silhouette_avg)
+    return sum_of_squared_distances, silhouette
+
+def plot_kmeans(K, data, metric) -> None:
+    plt.plot(K, data, 'bx-')
+    plt.xlabel('k')
+    if metric == "elbow":
+        plt.ylabel('Sum of squared distances')
+        plt.title('Elbow Method For Optimal k')
+    if metric == "silhouette":
+        plt.ylabel('Silhouette score')
+        plt.title('Silhouette Score for Optimal k')
+    plt.show()
 
 def get_phrases(sentences:list, min_count:int=5, threshold:int=100) -> list:
     bigram = Phrases(sentences, min_count=min_count, threshold = threshold) # higher threshold fewer phrases.
@@ -19,6 +48,10 @@ def get_phrases(sentences:list, min_count:int=5, threshold:int=100) -> list:
     phrased_tri = [t for t in trigram[[b for b in bigram[sentences]]]]
     
     return phrased_tri
+
+def phrasing(data):
+    phrased_l = get_phrases([tokenizer.tokenize(d.lower()) for d in data])
+    #phrased_s = [" "join(p) for p in phrased_l]
 
 def output_clusters(wc:list, cc:list, c2w:dict, n_clusters:int = 10, n_words:int = 10, average:bool=False,labels:list=[]) -> pd.DataFrame:
     #if average:
