@@ -50,47 +50,7 @@ class WMD():
                 cost_m = flow*self.C
                 cost_m = cost_m[:len(self.X1.idxs),len(self.X1.idxs):].round(5)
                 return (wmd,flow,cost_m, w1, w2)
-
-            
-class WMDManyToMany():
-    def __init__(self,X1,X2,E,idx2word)->None:
-        self.flows = []
-        self.wc_X1 = self._word_dict(X1)
-        self.wc_X2 = self._word_dict(X2)
-        self.distances = np.zeros((len(X1), len(X2)))
-        self.X1 = X1
-        self.X2 = X2
-        self.E = E
-        self.idx2word = idx2word
-        
-    def _word_dict(self, docs)->dict:
-        vocab = list(set(list(itertools.chain.from_iterable(doc.words for doc in docs))))
-        word_dict = {word: 0 for word in vocab}
-        return word_dict
-        
-    def get_distances(self, return_flow = False):
-        if not return_flow:
-            for idx1, doc1 in enumerate(self.X1):
-                for idx2, doc2 in enumerate(self.X2):
-                    wmd = WMD(doc1, doc2, self.E).get_distance()
-                    self.distances[idx1, idx2] = wmd
-                    
-        elif return_flow:
-            for idx1, doc1 in enumerate(self.X1):
-                for idx2, doc2 in enumerate(self.X2):
-                    wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E).get_distance(self.idx2word, 
-                                                                                  return_flow = True)
-                    self._add_word_costs(w1, w2, cost_m)
-                    self.distances[idx1, idx2] = wmd   
-            return self.distances, self.wc_X1, self.wc_X2
-
-    def _add_word_costs(self, w1, w2, cost_m)->None:
-        for idx,w in enumerate(w1):
-            self.wc_X1[w] += np.sum(cost_m[idx,:])
-            
-        for idx,w in enumerate(w2):
-            self.wc_X2[w] += np.sum(cost_m[:,idx])
-            
+    
 class WMDPairs():
     def __init__(self,X1:list,X2:list,pairs:dict,E:np.ndarray,idx2word:dict) -> None:
         self.flows = []
@@ -116,6 +76,8 @@ class WMDPairs():
                       thread = False) -> None:
         self.return_flow = return_flow
         self.sum_clusters = sum_clusters
+        self.X1_feat = np.zeros((len(self.pairs),len(c2w)))
+        self.X2_feat = np.zeros((len(self.pairs),len(c2w)))
         
         if sum_clusters:
             self.cc_X1 = {k: 0 for k in c2w.keys()}
@@ -126,45 +88,42 @@ class WMDPairs():
             futures = []
             with ThreadPoolExecutor(max_workers=15) as executor:
                 for idx, key in enumerate(self.pairs.keys()):
-                    future = executor.submit(self._get_wmd, key)
+                    future = executor.submit(self._get_wmd, key, idx)
                     futures.append(future)
                     if idx % 100 == 0:
                         print(f"Calculated distances between approximately {idx} documents.")
         
         else:
             for idx, key in enumerate(self.pairs.keys()):
-                self._get_wmd(key)
+                self._get_wmd(key, idx)
                 if idx % 100 == 0:
                     print(f"Calculated distances between {idx} documents.")
 
-    def _get_wmd(self, key):
+    def _get_wmd(self, key, doc_idx):
         doc1 = self.X1[key]
         doc2 = self.X2[self.pairs[key]]
         if self.return_flow:
             wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E).get_distance(self.idx2word, 
                                                                           return_flow = True)
-            self._add_word_costs(w1, w2, cost_m)
+            self._add_word_costs(w1, w2, cost_m, doc_idx)
         else:
             wmd = WMD(doc1, doc2, self.E).get_distance()
         self.distances[key, self.pairs[key]] = wmd 
     
-    def _add_word_costs(self, w1: list, w2: list, cost_m)->None:
-        #print(w1)
+    def _add_word_costs(self, w1: list, w2: list, cost_m, doc_idx:int)->None:
         for idx,w in enumerate(w1):
             cost = np.sum(cost_m[idx,:])
             self.wc_X1[w] += cost
             if self.sum_clusters:
                 self.cc_X1[self.w2c[w]] += cost
-                #print(idx, w, self.cc_X1[self.w2c[w]], cost)
-        
-        #print("\n")
-        #print(w2)
+                self.X1_feat[doc_idx,self.w2c[w]] = cost
+
         for idx,w in enumerate(w2):
             cost = np.sum(cost_m[:,idx])
             self.wc_X2[w] += cost
             if self.sum_clusters:
                 self.cc_X2[self.w2c[w]] += cost
-                #print(idx, w, self.cc_X2[self.w2c[w]], cost)
+                self.X2_feat[doc_idx,self.w2c[w]] = cost
                 
     def get_differences(self) -> None:
         self.wc_X1_diff = dict(self.wc_X1)
@@ -231,3 +190,41 @@ class LC_RWMD():
                 else:
                     pass
 
+class WMDManyToMany():
+    def __init__(self,X1,X2,E,idx2word)->None:
+        self.flows = []
+        self.wc_X1 = self._word_dict(X1)
+        self.wc_X2 = self._word_dict(X2)
+        self.distances = np.zeros((len(X1), len(X2)))
+        self.X1 = X1
+        self.X2 = X2
+        self.E = E
+        self.idx2word = idx2word
+        
+    def _word_dict(self, docs)->dict:
+        vocab = list(set(list(itertools.chain.from_iterable(doc.words for doc in docs))))
+        word_dict = {word: 0 for word in vocab}
+        return word_dict
+        
+    def get_distances(self, return_flow = False):
+        if not return_flow:
+            for idx1, doc1 in enumerate(self.X1):
+                for idx2, doc2 in enumerate(self.X2):
+                    wmd = WMD(doc1, doc2, self.E).get_distance()
+                    self.distances[idx1, idx2] = wmd
+                    
+        elif return_flow:
+            for idx1, doc1 in enumerate(self.X1):
+                for idx2, doc2 in enumerate(self.X2):
+                    wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E).get_distance(self.idx2word, 
+                                                                                  return_flow = True)
+                    self._add_word_costs(w1, w2, cost_m)
+                    self.distances[idx1, idx2] = wmd   
+            return self.distances, self.wc_X1, self.wc_X2
+
+    def _add_word_costs(self, w1, w2, cost_m)->None:
+        for idx,w in enumerate(w1):
+            self.wc_X1[w] += np.sum(cost_m[idx,:])
+            
+        for idx,w in enumerate(w2):
+            self.wc_X2[w] += np.sum(cost_m[:,idx])
