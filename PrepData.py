@@ -25,7 +25,7 @@ import umap.plot
 
 t = time.process_time()
 
-PATH = "../data/yelp_dataset/"
+PATH = "data/yelp_dataset/"
 yelp_data = []
 r_dtypes = {"review_id":str,
             "user_id":str,
@@ -101,5 +101,14 @@ if PHRASING:
     elapsed = time.process_time() - t
     print(f"Phrasing done. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
-print("Example sentence:")
-print(sentences_clean[0])
+print("Example sentence before preprocessing:")
+print(sample['text'][6])
+
+print("Example sentence after preprocessing:")
+print(" ".join(sample['review_clean'][6]))
+
+sample["sentiment"] = ['positive' if s == 5 else 'negative' for s in sample['stars']]
+sample = sample.sort_values("sentiment").drop('level_0', axis=1).reset_index()
+
+print("Saving data.")
+sample.to_pickle('data/yelp_sample.pkl')
