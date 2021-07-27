@@ -1,27 +1,11 @@
-from collections import defaultdict
-from flow_wmd.documents import Document
-from flow_wmd.gale_shapeley import Matcher
-from flow_wmd.models import LC_RWMD, WMD, WMDManyToMany, WMDPairs
 from flow_wmd.utils import *
-
-from gensim.models import KeyedVectors
 from nltk.corpus import stopwords
 from nltk.tokenize import ToktokTokenizer
-from random import shuffle
-from scipy.spatial.distance import is_valid_dm, cdist
-from sklearn.decomposition import PCA
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.manifold import TSNE
-from sklearn.metrics import silhouette_score
-from sklearn import cluster
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import re
-import seaborn as sns
-import umap
-import umap.plot
+import time
 
 t = time.process_time()
 
