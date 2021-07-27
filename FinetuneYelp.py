@@ -1,6 +1,7 @@
 import gensim
 import numpy as np
 import pandas as pd
+import pickle
 import time
 
 from flow_wmd.utils import *
@@ -57,6 +58,7 @@ r_dtypes = {"review_id":str,
             "funny": np.int32,
             "cool": np.int32}
 drop = ['review_id', 'user_id','useful', 'funny', 'cool']
+#query = "date >= '2017-12-01' and (stars==1 or stars ==5)"
 
 print("Loading review data.")
 with open(f"{PATH}yelp_academic_dataset_review.json", "r") as f:
@@ -78,7 +80,7 @@ yelp_business = pd.read_json(f"{PATH}yelp_academic_dataset_business.json",
                              orient="records", 
                              lines=True)
 yelp_business = yelp_business[yelp_business.city.isin(["Portland", "Atlanta"])]
-print(f"Businesses in Atl and Ptl shape:{yelp_business.shape}")
+print(f"Businesses in Atl and Ptl shape: {yelp_business.shape}")
 
 yelp_merged = yelp_data.merge(yelp_business, on='business_id')
 
@@ -113,20 +115,25 @@ sentences_tokenized = [tokenizer.tokenize(i) for i in sentences_tokenized]
 elapsed = time.process_time() - t
 print(f"Tokenization finished. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
+with open('data/yelp_w2v_tokenized.pkl', 'wb') as handle:
+    pickle.dump(sentences_tokenized, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 print("Loading GoogleNews Vectors")
-model = KeyedVectors.load_word2vec_format('../embeddings/GoogleNews-vectors-negative300.bin.gz', binary=True)
+model = KeyedVectors.load_word2vec_format('embeddings/GoogleNews-vectors-negative300.bin.gz', binary=True)
 elapsed = time.process_time() - t
 print(f"News vectors loaded. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
 PHRASING = True
 MIN = 500
 THRESHOLD = 200
+SAVE = True
 
 if PHRASING:
     print("Starting phrasing.")
     sentences_phrased = get_phrases(sentences_tokenized, 
                                     min_count = MIN, 
-                                    threshold = THRESHOLD)
+                                    threshold = THRESHOLD,
+                                    save = SAVE)
     sentences_training = sentences_phrased
     elapsed = time.process_time() - t
     print(f"Phrasing done. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
@@ -134,10 +141,13 @@ if PHRASING:
     print(sentences_training[0])
     print(sentences_training[1])
     print(sentences_training[2])
-    
+    with open('data/yelp_w2v_phrased.pkl', 'wb') as handle:
+        pickle.dump(sentences_training, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 else:
     sentences_training = sentences_tokenized
     
+
 epoch_logger = EpochLogger()
 loss_logger = LossLogger()
 
@@ -148,7 +158,7 @@ MIN_COUNT = 2
 SG = 1
 HS = 0
 SEED = 42
-LOSS = Truene
+LOSS = True
 ALPHA = 0.01
 
 print("Initializing Word2Vec Gensim model with News vectors.")
