@@ -1,4 +1,38 @@
+from collections import defaultdict
+from flow_wmd.documents import Document
+from flow_wmd.gale_shapeley import Matcher
+from flow_wmd.models import LC_RWMD, WMD, WMDManyToMany, WMDPairs
+from flow_wmd.utils import *
+
+from gensim.models import KeyedVectors
+from nltk.corpus import stopwords
+from nltk.tokenize import ToktokTokenizer
+from random import shuffle
+from scipy.spatial.distance import is_valid_dm, cdist
+from sklearn.decomposition import PCA
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.manifold import TSNE
+from sklearn.metrics import silhouette_score
+from sklearn import cluster
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pickle
+import random
+import re
+import seaborn as sns
+import sys
+import umap
+
+from pylab import savefig
+
 random.seed(42)
+
+vecs = sys.argv[1]
+pairing = sys.argv[2]
+
+print(f"Beginning WMD pipeline with {vecs} vectors and {pairing} pairing.")
 
 PATH = "data/"
 print("Loading and preparing data.")
@@ -68,27 +102,71 @@ print(f"There are {len(oov_)} oov words left.")
 features = vectorizer.get_feature_names()
 word2idx = {word: idx for idx, word in enumerate(vectorizer.get_feature_names())}
 idx2word = {idx: word for idx, word in enumerate(vectorizer.get_feature_names())}
+E = model[features]
+
+pos_docs, neg_docs = [], []
+
+for idx, doc in enumerate(pos_tok):
+    pos_docs.append(Document(doc, pos_nbow[idx], word2idx, E))
+    
+for idx, doc in enumerate(neg_tok):
+    neg_docs.append(Document(doc, neg_nbow[idx], word2idx, E))
 
 ## Create Kmeans for WMD
 k = 100
 
-km_base = cluster.KMeans(n_clusters=k,max_iter=300).fit(E)
-labels = km_base.labels_
-centroids = km_base.cluster_centers_
+if vecs == 'w2v':
+    km = cluster.KMeans(n_clusters=k,max_iter=300).fit(E)
+    labels = km.labels_
 
-km_pca = cluster.KMeans(n_clusters=k,max_iter=300).fit(E_pca)
-labels_pca = km_pca.labels_
-
-km_umap = cluster.KMeans(n_clusters=k,max_iter=300).fit(E_umap)
-labels_umap=km_umap.labels_
-
-km_tsne = cluster.KMeans(n_clusters=k,max_iter=300).fit(E_tsne)
-labels_tsne = km_tsne.labels_
-
-lc_rwmd = LC_RWMD(pos_docs, neg_docs,pos_nbow,neg_nbow,E)
-lc_rwmd.get_D()
-
-if pairing == 'gale_shapeley':
+if vecs == 'tsne':
+    print("Getting T-SNE vectors.")
+    method='barnes_hut'
+    n_components = 2
+    verbose = 1
+    E_tsne = TSNE(n_components=n_components, method=method, verbose=verbose).fit_transform(E)
+    plt.scatter(E_tsne[:, 0], E_tsne[:, 1], s=1);
+    plt.savefig('img/tsne_yelp.png')
+    if use_reduced:
+        E = E_tsne
+    
+if vecs == 'umap':
+    print("Getting distance matrix and determining UMAP hyperparameters.")
+    metric = 'cosine'
+    dm = cdist(E, E, metric)
+    np.fill_diagonal(dm, 0)
+    print("Checking for validity of distance matrix.")
+    print(f"Is valid dm: {is_valid_dm(dm)}")
+    mean, std = np.mean(dm), np.std(dm)
+    print(mean, std)
+    min_dist=mean - 2*std
+    n_neighbors = int(0.001*len(E))
+    n_components=2
+    print(f"Min distance: {min_dist}")
+    print(f"N. neighbors: {n_neighbors}")
+    print(f"N. compontents: {n_components}")
+    print("Getting UMAP vectors.")
+    verbose = 1
+    E_umap = umap.UMAP(
+        n_neighbors=n_neighbors,
+        min_dist=min_dist,
+        n_components=n_components,
+        random_state=42,
+        verbose=verbose
+    ).fit_transform(E)
+    plt.scatter(E_umap[:, 0], E_umap[:, 1], s=1);
+    plt.savefig('img/umap_yelp.png')
+    if use_reduced:
+        E = E_umap
+        
+word2cluster = {features[idx]: cl for idx, cl in enumerate(labels)}
+cluster2words = defaultdict(list)
+for key, value in word2cluster.items():
+    cluster2words[value].append(key)
+    
+if pairing == 'gs':
+    lc_rwmd = LC_RWMD(pos_docs, neg_docs,pos_nbow,neg_nbow,E)
+    lc_rwmd.get_D()
     print("Running Gale-Shapeley pairing.")
     matcher = Matcher(lc_rwmd.D)
     engaged = matcher.matchmaker()
@@ -106,3 +184,115 @@ if pairing == 'full':
     pos_idx = list(range(0,len(pos_docs)))
     neg_idx = list(range(0,len(neg_docs)))
     pairs = [(i,j) for i in pos_idx for j in neg_idx]
+
+    
+wmd_pairs_flow = WMDPairs(pos_docs,neg_docs,pairs,E,idx2word)
+wmd_pairs_flow.get_distances(return_flow = True, 
+                             sum_clusters = True, 
+                             w2c = word2cluster, 
+                             c2w = cluster2words,
+                             thread = True)
+
+print(take(10, wmd_pairs_flow.wc_X1.items()))
+print(take(10, wmd_pairs_flow.wc_X2.items()))
+print(take(10, wmd_pairs_flow.cc_X1.items()))
+print(take(10, wmd_pairs_flow.cc_X2.items()))
+print({k: v for k, v in sorted(wmd_pairs_flow.cc_X1.items(), key=lambda item: item[1], reverse=True)[:10]})
+
+wmd_pairs_flow.get_differences()
+
+top_n = 100
+x1_to_x2 = {k: v for k, v in sorted(wmd_pairs_flow.wc_X1_diff.items(), key=lambda item: item[1], reverse=True)[:top_n]}
+top_words_x1_df = pd.DataFrame.from_dict(x1_to_x2, orient='index', columns = ["cost"])
+top_words_x1_df['word'] = top_words_x1_df.index
+
+x2_to_x1 = {k: v for k, v in sorted(wmd_pairs_flow.wc_X2_diff.items(), key=lambda item: item[1], reverse=True)[:top_n]}
+top_words_x2_df = pd.DataFrame.from_dict(x2_to_x1, orient='index', columns = ["cost"])
+top_words_x2_df['word'] = top_words_x2_df.index
+
+top_words_x1_df.to_csv(f"experiments/yelp_x1_to_x2_{vecs}_{pairing}.csv", index=False)
+with open(f'experiments/yelp_pos_to_neg_diff_{vecs}_{pairing}.pkl', 'wb') as handle:
+    pickle.dump(x1_to_x2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+top_words_x2_df.to_csv(f"experiments/yelp_x2_to_x1_{vecs}_{pairing}.csv", index=False)
+with open(f'experiments/yelp_neg_to_pos_diff_{vecs}_{pairing}.pkl', 'wb') as handle:
+    pickle.dump(x2_to_x1, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+n_clusters = 100
+n_words = 100
+
+c1 = output_clusters(wc=wmd_pairs_flow.wc_X1_diff.items(), 
+                     cc=wmd_pairs_flow.cc_X1.items(), 
+                     c2w=cluster2words, 
+                     n_clusters=n_clusters, 
+                     n_words=n_words)
+c2 = output_clusters(wc=wmd_pairs_flow.wc_X2_diff.items(), 
+                     cc=wmd_pairs_flow.cc_X2.items(), 
+                     c2w=cluster2words, 
+                     n_clusters=n_clusters, 
+                     n_words=n_words)
+
+c1.to_csv(f'experiments/yelp_pos_to_neg_clusters_{vecs}_{pairing}.csv', index=False)
+with open(f'experiments/yelp_pos_to_neg_clusters_{vecs}_{pairing}.pkl', 'wb') as handle:
+    pickle.dump(c1, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+c2.to_csv(f'experiments/yelp_neg_to_pos_clusters_{vecs}_{pairing}.csv', index=False)
+with open(f'experiments/yelp_neg_to_pos_clusters_{vecs}_{pairing}.pkl', 'wb') as handle:
+    pickle.dump(c2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+x1_costs = pd.DataFrame(wmd_pairs_flow.X1_feat)
+x1_costs.index = list(pairs.keys())
+x1_costs = x1_costs.sort_index()
+x1_costs = x1_costs[c1.columns]
+x1_costs['city'] = sample[:500].city
+x1_costs_long = pd.melt(x1_costs, id_vars=['city']).rename(columns={"variable":"cluster"})
+x1_costs_long = x1_costs_long[x1_costs_long.value != 0]
+
+g = sns.catplot(x="city", 
+                y="value", 
+                col="cluster", 
+                data=x1_costs_long, 
+                kind="box",
+                height=5, 
+                aspect=.7,
+                col_wrap=5,
+                margin_titles=True);
+g.map_dataframe(sns.stripplot, 
+                x="city", 
+                y="value", 
+                palette=["#404040"], 
+                alpha=0.2, dodge=True)
+g.set_axis_labels("City", "Cost")
+for ax in g.axes.flatten():
+    ax.tick_params(labelbottom=True)
+
+g.savefig(f'img/yelp_pos_to_neg_boxplots_{vecs}_{pairing}.png', dpi=400)
+
+x2_costs = pd.DataFrame(wmd_pairs_flow.X1_feat)
+x2_costs.index = list(pairs.values())
+x2_costs = x2_costs.sort_index()
+x2_costs = x2_costs[c2.columns]
+x2_costs['city'] = sample[500:1000].city.tolist()
+
+x2_costs_long = pd.melt(x2_costs, id_vars=['city']).rename(columns={"variable":"cluster"})
+x2_costs_long = x2_costs_long[x2_costs_long.value != 0]
+
+g = sns.catplot(x="city", 
+                y="value", 
+                col="cluster", 
+                data=x2_costs_long, 
+                kind="box",
+                height=5, 
+                aspect=.7,
+                col_wrap=5,
+                margin_titles=True);
+g.map_dataframe(sns.stripplot, 
+                x="city", 
+                y="value", 
+                palette=["#404040"], 
+                alpha=0.2, dodge=True)
+g.set_axis_labels("City", "Cost")
+for ax in g.axes.flatten():
+    ax.tick_params(labelbottom=True)
+
+g.savefig(f'img/yelp_neg_to_pos_boxplots_{vecs}_{pairing}.png', dpi=400)
