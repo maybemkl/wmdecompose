@@ -45,6 +45,7 @@ yelp_business = yelp_business[yelp_business.city.isin(["Portland", "Atlanta"])]
 print(f"Businesses in Atl and Ptl shape:{yelp_business.shape}")
 
 yelp_merged = yelp_data.merge(yelp_business, on='business_id')
+yelp_merged = yelp_merged.rename(columns={"stars_x":"stars"})
 
 print(f"Merged data shape: {yelp_merged.shape}")
 
