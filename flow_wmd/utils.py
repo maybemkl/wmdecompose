@@ -4,6 +4,7 @@ from gensim.models.phrases import Phrases, Phraser
 from itertools import islice
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize.toktok import ToktokTokenizer
+from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 import matplotlib.pyplot as plt
@@ -14,7 +15,7 @@ def kmeans_search(X, K):
     sum_of_squared_distances = []
     silhouette = []
     for k in K:
-        km = cluster.KMeans(n_clusters=k,max_iter=300)
+        km = KMeans(n_clusters=k,max_iter=300)
         km = km.fit(X)
         sum_of_squared_distances.append(km.inertia_)
         cluster_labels = km.fit_predict(X)
@@ -25,7 +26,7 @@ def kmeans_search(X, K):
               "The average silhouette_score is :", silhouette_avg)
     return sum_of_squared_distances, silhouette
 
-def plot_kmeans(K, data, metric) -> None:
+def plot_kmeans(K, data, metric, fname:str = "") -> None:
     plt.plot(K, data, 'bx-')
     plt.xlabel('k')
     if metric == "elbow":
@@ -34,24 +35,32 @@ def plot_kmeans(K, data, metric) -> None:
     if metric == "silhouette":
         plt.ylabel('Silhouette score')
         plt.title('Silhouette Score for Optimal k')
-    plt.show()
+    if len(fname) > 0:
+        plt.savefig(fname)
+    else:
+        plt.show()
 
-def get_phrases(sentences:list, min_count:int=5, threshold:int=100) -> list:
+def get_phrases(sentences:list, min_count:int=5, threshold:int=100, save:bool=False) -> list:
+    print("Initializing bigram Phrases.")
     bigram = Phrases(sentences, min_count=min_count, threshold = threshold) # higher threshold fewer phrases.
+    print("Initializing trigram Phrases.")
     trigram = Phrases(bigram[sentences])  
+    if save:
+        print("Saving bigram Phrases.")
+        bigram.save("embeddings/bigram_phrases.pkl")
+        print("Saving trigram Phrases.")
+        trigram.save("embeddings/bigram_phrases.pkl")
 
     # 'Phraser' is a wrapper that makes 'Phrases' run faster
     bigram_phraser = Phraser(bigram)
     trigram_phraser = Phraser(trigram)
 
+    print("Finding bigrams in data.")
     phrased_bi = [b for b in bigram[sentences]]
+    print("Finding trigrams in data.")
     phrased_tri = [t for t in trigram[[b for b in bigram[sentences]]]]
     
     return phrased_tri
-
-def phrasing(data):
-    phrased_l = get_phrases([tokenizer.tokenize(d.lower()) for d in data])
-    #phrased_s = [" "join(p) for p in phrased_l]
 
 def output_clusters(wc:list, cc:list, c2w:dict, n_clusters:int = 10, n_words:int = 10, average:bool=False,labels:list=[]) -> pd.DataFrame:
     #if average:
@@ -85,16 +94,15 @@ def remove_oov(text, tokenizer, oov):
     filtered_text = ' '.join(filtered_tokens)    
     return filtered_text
 
-
 def take(n:int, iterable:iter) -> list:
     "Return first n items of the iterable as a list"
     return list(islice(iterable, n))
 
-def tokenize(text, tokenizer):
+def tokenize(text:str, tokenizer) -> list:
     tokens = tokenizer.tokenize(text)
     return tokens
 
-def tfidf_tokenize(text):
+def tfidf_tokenize(text:str) -> list:
     tokenizer=ToktokTokenizer()
     tokens = tokenizer.tokenize(text)
     return tokens
@@ -103,7 +111,7 @@ def tfidf_tokenize(text):
 # Partly self-authored, partly from https://www.kaggle.com/lakshmi25npathi/sentiment-analysis-of-imdb-movie-reviews
 
 #Removing the html strips
-def strip_html(text):
+def strip_html(text:str):
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text()
 
