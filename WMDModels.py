@@ -185,23 +185,26 @@ if pairing == 'full':
     neg_idx = list(range(0,len(neg_docs)))
     pairs = [(i,j) for i in pos_idx for j in neg_idx]
 
-    
+print("Initializing WMD.")
 wmd_pairs_flow = WMDPairs(pos_docs,neg_docs,pairs,E,idx2word)
+
+print("Getting WMD distances.")
 wmd_pairs_flow.get_distances(return_flow = True, 
                              sum_clusters = True, 
                              w2c = word2cluster, 
                              c2w = cluster2words,
                              thread = True)
 
-print(take(10, wmd_pairs_flow.wc_X1.items()))
-print(take(10, wmd_pairs_flow.wc_X2.items()))
-print(take(10, wmd_pairs_flow.cc_X1.items()))
-print(take(10, wmd_pairs_flow.cc_X2.items()))
-print({k: v for k, v in sorted(wmd_pairs_flow.cc_X1.items(), key=lambda item: item[1], reverse=True)[:10]})
-
+print("Getting differences in flow.")
 wmd_pairs_flow.get_differences()
 
+print("Saving model.")
+with open(f'experiments/yelp_WMDmodel_{vecs}_{pairing}.pkl', 'wb') as handle:
+    pickle.dump(wmd_pairs_flow, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+print("Getting top {}")
 top_n = 100
+print(f"Getting top {top_n} words both ways.")
 x1_to_x2 = {k: v for k, v in sorted(wmd_pairs_flow.wc_X1_diff.items(), key=lambda item: item[1], reverse=True)[:top_n]}
 top_words_x1_df = pd.DataFrame.from_dict(x1_to_x2, orient='index', columns = ["cost"])
 top_words_x1_df['word'] = top_words_x1_df.index
@@ -210,6 +213,7 @@ x2_to_x1 = {k: v for k, v in sorted(wmd_pairs_flow.wc_X2_diff.items(), key=lambd
 top_words_x2_df = pd.DataFrame.from_dict(x2_to_x1, orient='index', columns = ["cost"])
 top_words_x2_df['word'] = top_words_x2_df.index
 
+print(f"Saving top {top_n} words both ways.")
 top_words_x1_df.to_csv(f"experiments/yelp_x1_to_x2_{vecs}_{pairing}.csv", index=False)
 with open(f'experiments/yelp_pos_to_neg_diff_{vecs}_{pairing}.pkl', 'wb') as handle:
     pickle.dump(x1_to_x2, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -221,6 +225,7 @@ with open(f'experiments/yelp_neg_to_pos_diff_{vecs}_{pairing}.pkl', 'wb') as han
 n_clusters = 100
 n_words = 100
 
+print(f"Getting {n_clusters} with {n_words} each.")
 c1 = output_clusters(wc=wmd_pairs_flow.wc_X1_diff.items(), 
                      cc=wmd_pairs_flow.cc_X1.items(), 
                      c2w=cluster2words, 
@@ -232,6 +237,7 @@ c2 = output_clusters(wc=wmd_pairs_flow.wc_X2_diff.items(),
                      n_clusters=n_clusters, 
                      n_words=n_words)
 
+print("Saving clusters.")
 c1.to_csv(f'experiments/yelp_pos_to_neg_clusters_{vecs}_{pairing}.csv', index=False)
 with open(f'experiments/yelp_pos_to_neg_clusters_{vecs}_{pairing}.pkl', 'wb') as handle:
     pickle.dump(c1, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -240,6 +246,7 @@ c2.to_csv(f'experiments/yelp_neg_to_pos_clusters_{vecs}_{pairing}.csv', index=Fa
 with open(f'experiments/yelp_neg_to_pos_clusters_{vecs}_{pairing}.pkl', 'wb') as handle:
     pickle.dump(c2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+print("Preparing and saving boxplots.")
 x1_costs = pd.DataFrame(wmd_pairs_flow.X1_feat)
 x1_costs.index = list(pairs.keys())
 x1_costs = x1_costs.sort_index()
