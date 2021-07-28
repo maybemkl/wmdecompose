@@ -117,10 +117,6 @@ for idx, doc in enumerate(neg_tok):
 ## Create Kmeans for WMD
 k = 100
 
-if vecs == 'w2v':
-    km = cluster.KMeans(n_clusters=k,max_iter=300).fit(E)
-    labels = km.labels_
-
 if vecs == 'tsne':
     print("Getting T-SNE vectors.")
     method='barnes_hut'
@@ -129,7 +125,7 @@ if vecs == 'tsne':
     E_tsne = TSNE(n_components=n_components, method=method, verbose=verbose).fit_transform(E)
     plt.scatter(E_tsne[:, 0], E_tsne[:, 1], s=1);
     plt.savefig('img/tsne_yelp.png')
-    if reduced:
+    if reduced == True:
         E = E_tsne
     
 if vecs == 'umap':
@@ -158,9 +154,11 @@ if vecs == 'umap':
     ).fit_transform(E)
     plt.scatter(E_umap[:, 0], E_umap[:, 1], s=1);
     plt.savefig('img/umap_yelp.png')
-    if reduced:
+    if reduced == True:
         E = E_umap
-        
+
+km = cluster.KMeans(n_clusters=k,max_iter=300).fit(E)
+labels = km.labels_      
 word2cluster = {features[idx]: cl for idx, cl in enumerate(labels)}
 cluster2words = defaultdict(list)
 for key, value in word2cluster.items():
@@ -183,10 +181,12 @@ if pairing == 'random':
     pairs = dict(zip(pos_idx, neg_idx))
 if pairing == 'full':
     print("Running full pairing.")
-    pos_idx = list(range(0,len(pos_docs)))
-    neg_idx = list(range(0,len(neg_docs)))
-    pairs = [(i,j) for i in pos_idx for j in neg_idx]
+    idx = list(range(0,len(pos_docs)*len(neg_docs)))
+    pairs = dict([(i,j) for i, j in enumerate(idx)])
+    pos_docs = [d for d in pos_docs for _ in list(range(0,len(neg_docs)))]
+    neg_docs = [d for d in neg_docs for _ in list(range(0,len(pos_docs)))]
 
+print(f"Prepared {len(pairs)} pairs.")
 print("Initializing WMD.")
 wmd_pairs_flow = WMDPairs(pos_docs,neg_docs,pairs,E,idx2word)
 
