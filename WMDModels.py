@@ -31,8 +31,10 @@ random.seed(42)
 
 vecs = sys.argv[1]
 pairing = sys.argv[2]
+reduced = sys.argv[3]
 
 print(f"Beginning WMD pipeline with {vecs} vectors and {pairing} pairing.")
+print(f"Vector reduction: {reduced}")
 
 PATH = "data/"
 print("Loading and preparing data.")
@@ -127,7 +129,7 @@ if vecs == 'tsne':
     E_tsne = TSNE(n_components=n_components, method=method, verbose=verbose).fit_transform(E)
     plt.scatter(E_tsne[:, 0], E_tsne[:, 1], s=1);
     plt.savefig('img/tsne_yelp.png')
-    if use_reduced:
+    if reduced:
         E = E_tsne
     
 if vecs == 'umap':
@@ -156,7 +158,7 @@ if vecs == 'umap':
     ).fit_transform(E)
     plt.scatter(E_umap[:, 0], E_umap[:, 1], s=1);
     plt.savefig('img/umap_yelp.png')
-    if use_reduced:
+    if reduced:
         E = E_umap
         
 word2cluster = {features[idx]: cl for idx, cl in enumerate(labels)}
@@ -199,10 +201,9 @@ print("Getting differences in flow.")
 wmd_pairs_flow.get_differences()
 
 print("Saving model.")
-with open(f'experiments/yelp_WMDmodel_{vecs}_{pairing}.pkl', 'wb') as handle:
+with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_WMDmodel.pkl', 'wb') as handle:
     pickle.dump(wmd_pairs_flow, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-print("Getting top {}")
 top_n = 100
 print(f"Getting top {top_n} words both ways.")
 x1_to_x2 = {k: v for k, v in sorted(wmd_pairs_flow.wc_X1_diff.items(), key=lambda item: item[1], reverse=True)[:top_n]}
@@ -214,12 +215,12 @@ top_words_x2_df = pd.DataFrame.from_dict(x2_to_x1, orient='index', columns = ["c
 top_words_x2_df['word'] = top_words_x2_df.index
 
 print(f"Saving top {top_n} words both ways.")
-top_words_x1_df.to_csv(f"experiments/yelp_x1_to_x2_{vecs}_{pairing}.csv", index=False)
-with open(f'experiments/yelp_pos_to_neg_diff_{vecs}_{pairing}.pkl', 'wb') as handle:
+top_words_x1_df.to_csv(f"experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_x1_to_x2.csv", index=False)
+with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_diff.pkl', 'wb') as handle:
     pickle.dump(x1_to_x2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-top_words_x2_df.to_csv(f"experiments/yelp_x2_to_x1_{vecs}_{pairing}.csv", index=False)
-with open(f'experiments/yelp_neg_to_pos_diff_{vecs}_{pairing}.pkl', 'wb') as handle:
+top_words_x2_df.to_csv(f"experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_x2_to_x1.csv", index=False)
+with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_diff.pkl', 'wb') as handle:
     pickle.dump(x2_to_x1, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
 n_clusters = 100
@@ -238,12 +239,12 @@ c2 = output_clusters(wc=wmd_pairs_flow.wc_X2_diff.items(),
                      n_words=n_words)
 
 print("Saving clusters.")
-c1.to_csv(f'experiments/yelp_pos_to_neg_clusters_{vecs}_{pairing}.csv', index=False)
-with open(f'experiments/yelp_pos_to_neg_clusters_{vecs}_{pairing}.pkl', 'wb') as handle:
+c1.to_csv(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_clusters.csv', index=False)
+with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_clusters.pkl', 'wb') as handle:
     pickle.dump(c1, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-c2.to_csv(f'experiments/yelp_neg_to_pos_clusters_{vecs}_{pairing}.csv', index=False)
-with open(f'experiments/yelp_neg_to_pos_clusters_{vecs}_{pairing}.pkl', 'wb') as handle:
+c2.to_csv(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_clusters.csv', index=False)
+with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_clusters.pkl', 'wb') as handle:
     pickle.dump(c2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 print("Preparing and saving boxplots.")
@@ -273,7 +274,7 @@ g.set_axis_labels("City", "Cost")
 for ax in g.axes.flatten():
     ax.tick_params(labelbottom=True)
 
-g.savefig(f'img/yelp_pos_to_neg_boxplots_{vecs}_{pairing}.png', dpi=400)
+g.savefig(f'img/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_boxplots.png', dpi=400)
 
 x2_costs = pd.DataFrame(wmd_pairs_flow.X1_feat)
 x2_costs.index = list(pairs.values())
@@ -302,4 +303,4 @@ g.set_axis_labels("City", "Cost")
 for ax in g.axes.flatten():
     ax.tick_params(labelbottom=True)
 
-g.savefig(f'img/yelp_neg_to_pos_boxplots_{vecs}_{pairing}.png', dpi=400)
+g.savefig(f'img/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_boxplots.png', dpi=400)
