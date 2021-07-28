@@ -40,26 +40,32 @@ def plot_kmeans(K, data, metric, fname:str = "") -> None:
     else:
         plt.show()
 
-def get_phrases(sentences:list, min_count:int=5, threshold:int=100, save:bool=False) -> list:
-    print("Initializing bigram Phrases.")
-    bigram = Phrases(sentences, min_count=min_count, threshold = threshold) # higher threshold fewer phrases.
-    print("Initializing trigram Phrases.")
-    trigram = Phrases(bigram[sentences])  
+def get_phrases(sentences:list, 
+                min_count:int=5, 
+                threshold:int=100, 
+                save:bool=False,
+                load:bool=False) -> list:
+    
+    if load:
+        bigram=Phrases.load("embeddings/bigram_phrases.pkl")
+        trigram=Phrases.load("embeddings/trigram_phrases.pkl")
+        
+    else:
+        print("Initializing bigram Phrases.")
+        bigram = Phrases(sentences, min_count=min_count, threshold = threshold) # higher threshold fewer phrases.
+        print("Initializing trigram Phrases.")
+        trigram = Phrases(bigram[sentences]) 
+    
     if save:
         print("Saving bigram Phrases.")
         bigram.save("embeddings/bigram_phrases.pkl")
         print("Saving trigram Phrases.")
-        trigram.save("embeddings/bigram_phrases.pkl")
-
-    # 'Phraser' is a wrapper that makes 'Phrases' run faster
-    bigram_phraser = Phraser(bigram)
-    trigram_phraser = Phraser(trigram)
+        trigram.save("embeddings/trigram_phrases.pkl")
 
     print("Finding bigrams in data.")
     phrased_bi = [b for b in bigram[sentences]]
     print("Finding trigrams in data.")
     phrased_tri = [t for t in trigram[[b for b in bigram[sentences]]]]
-    
     return phrased_tri
 
 def output_clusters(wc:list, cc:list, c2w:dict, n_clusters:int = 10, n_words:int = 10, average:bool=False,labels:list=[]) -> pd.DataFrame:

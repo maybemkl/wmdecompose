@@ -82,7 +82,9 @@ if PHRASING:
     print("Starting phrasing.")
     sample['review_clean']= get_phrases([tokenizer.tokenize(i) for i in sample['review_clean']],
                                         min_count = MIN, 
-                                        threshold = THRESHOLD)
+                                        threshold = THRESHOLD,
+                                        save=False,
+                                        load=True)
     elapsed = time.process_time() - t
     print(f"Phrasing done. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
@@ -93,7 +95,7 @@ print("Example sentence after preprocessing:")
 print(" ".join(sample['review_clean'][6]))
 
 sample["sentiment"] = ['positive' if s == 5 else 'negative' for s in sample['stars']]
-sample = sample.sort_values("sentiment").drop('level_0', axis=1).reset_index()
+sample = sample.sort_values("sentiment").reset_index()
 
 print("Saving data.")
 sample.to_pickle('data/yelp_sample.pkl')
