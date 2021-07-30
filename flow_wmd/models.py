@@ -2,6 +2,7 @@ from collections import Counter, namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from pyemd import emd, emd_with_flow
 from sklearn.metrics import euclidean_distances
+from sklearn.metrics.pairwise import cosine_similarity
 
 import bottleneck as bn
 import itertools
@@ -9,21 +10,22 @@ import numpy as np
 
 """
 TODO
-
 - Add Threading to WMDPairs.get_distances()
 - Cluster input and output
 - Typing
 - Docstrings
 - Remove redundant classes and functions
-
 """
 
 class WMD():
-    def __init__(self, X1, X2, E)->None:
+    def __init__(self, X1, X2, E, metric:str='cosine')->None:
         self.X1 = X1
         self.X2 = X2
         self.T = E[X1.idxs + X2.idxs,]
-        self.C = euclidean_distances(self.T, self.T)
+        if metric == 'cosine':
+            self.C = cosine_distance(self.T, self.T)
+        if metric == 'euclidean':
+            self.C = euclidean_distances(self.T, self.T)
         self.X1_sig = np.concatenate((X1.nbow[0,X1.idxs], 
                                       np.zeros(len(X2.idxs))))
         self.X2_sig = np.concatenate((np.zeros(len(X1.idxs)), 
@@ -52,7 +54,7 @@ class WMD():
                 return (wmd,flow,cost_m, w1, w2)
     
 class WMDPairs():
-    def __init__(self,X1:list,X2:list,pairs:dict,E:np.ndarray,idx2word:dict) -> None:
+    def __init__(self,X1:list,X2:list,pairs:dict,E:np.ndarray,idx2word:dict,metric:str='cosine') -> None:
         self.flows = []
         self.wc_X1 = self._word_dict(X1)
         self.wc_X2 = self._word_dict(X2)
@@ -62,6 +64,7 @@ class WMDPairs():
         self.E = E
         self.idx2word = idx2word
         self.pairs = pairs
+        self.metric = metric
         
     def _word_dict(self, docs) -> dict:
         vocab = list(set(list(itertools.chain.from_iterable(doc.words for doc in docs))))
@@ -103,11 +106,11 @@ class WMDPairs():
         doc1 = self.X1[key]
         doc2 = self.X2[self.pairs[key]]
         if self.return_flow:
-            wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E).get_distance(self.idx2word, 
-                                                                          return_flow = True)
+            wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E,metric=self.metric).get_distance(self.idx2word, 
+                                                                                             return_flow = True)
             self._add_word_costs(w1, w2, cost_m, doc_idx)
         else:
-            wmd = WMD(doc1, doc2, self.E).get_distance()
+            wmd = WMD(doc1, doc2, self.E,metric=self.metric).get_distance()
         self.distances[key, self.pairs[key]] = wmd 
     
     def _add_word_costs(self, w1: list, w2: list, cost_m, doc_idx:int)->None:
@@ -148,15 +151,21 @@ class LC_RWMD():
         self.X2_nbow = X2_nbow
         self.E = E
         
-    def get_D(self)->None:
+    def get_D(self, metric:str='cosine')->None:
         # Atasu et al LC-RWMD: One-to-many
         for idx2, doc2 in enumerate(self.X2):
-            Z = euclidean_distances(self.E, doc2.vecs).min(axis=1)
+            if metric == 'cosine':
+                Z = cosine_similarity(self.E, doc2.vecs).min(axis=1)
+            if metric == 'euclidean':
+                Z = euclidean_distances(self.E, doc2.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X1_nbow.toarray(), Z)
             self.D1.append(lc_rwmd)
 
         for idx1, doc1 in enumerate(self.X1):
-            Z = euclidean_distances(self.E, doc1.vecs).min(axis=1)
+            if metric == 'cosine':
+                Z = cosine_similarity(self.E, doc1.vecs).min(axis=1)
+            if metric == 'euclidean':
+                Z = euclidean_distances(self.E, doc1.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X2_nbow.toarray(), Z)
             self.D2.append(lc_rwmd)
 
