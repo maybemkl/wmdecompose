@@ -18,7 +18,7 @@ TODO
 """
 
 class WMD():
-    def __init__(self, X1, X2, E, metric:str='cosine')->None:
+    def __init__(self, X1:list, X2:list, E, metric:str='cosine')->None:
         self.X1 = X1
         self.X2 = X2
         self.T = E[X1.idxs + X2.idxs,]
@@ -52,7 +52,39 @@ class WMD():
                 cost_m = flow*self.C
                 cost_m = cost_m[:len(self.X1.idxs),len(self.X1.idxs):].round(5)
                 return (wmd,flow,cost_m, w1, w2)
-    
+
+class RWMD(WMD):
+    def get_distance(self, idx2word = None, return_flow = False):
+        if not return_flow:
+            rwmd, _, _ = self._rwmd()
+            return rwmd
+        
+        elif return_flow:
+            if idx2word == None:
+                print("idx2word argument is missing.")
+            else:
+                rwmd, flow_X1, flow_X2 = self._rwmd()
+                w1 = [idx2word[idx] for idx in self.X1.idxs]
+                w2 = [idx2word[idx] for idx in self.X2.idxs]
+                cost_X1 = self._get_cost(flow_X1)
+                cost_X2 = self._get_cost(flow_X2)
+                return (wmd,flow_X1, flow_X2,cost_X1, cost_X2, w1, w2)
+
+    def _rwmd(self):
+        potential_flow_X1 = list(j for j, dj in enumerate(self.X2.nbow.tolist()[0]) if dj > 0)
+        potential_flow_X2 = list(i for i, di in enumerate(self.X1.nbow.tolist()[0]) if di > 0)
+
+        print(potential_flow_X1)
+        print(len(potential_flow_X2))
+        print(len(potential_flow_X1))
+        print(self.C.shape)
+        flow_X1 = list(min(self.C[i, potential_flow_X1]) for i in range(len(self.X1.nbow[0])))
+        flow_X2 = list(min(self.C[j, potential_flow_X2]) for j in range(len(self.X2.nbow[0])))
+        cost_X1 = np.multiply(new_weights_dj, self.X1.nbow) 
+        cost_X2 = np.multiply(new_weights_di, self.X2.nbow)
+        rwmd = max(np.sum(cost_X1), np.sum(cost_X2))
+        return rwmd, flow_X1, flow_X2
+            
 class WMDPairs():
     def __init__(self,X1:list,X2:list,pairs:dict,E:np.ndarray,idx2word:dict,metric:str='cosine') -> None:
         self.flows = []
@@ -76,7 +108,8 @@ class WMDPairs():
                       sum_clusters: bool = False, 
                       w2c: list = [], 
                       c2w: dict = {},
-                      thread = False) -> None:
+                      thread = False,
+                      relax = False) -> None:
         self.return_flow = return_flow
         self.sum_clusters = sum_clusters
         self.X1_feat = np.zeros((len(self.pairs),len(c2w)))
@@ -90,17 +123,30 @@ class WMDPairs():
         if thread:
             futures = []
             with ThreadPoolExecutor(max_workers=15) as executor:
-                for idx, key in enumerate(self.pairs.keys()):
-                    future = executor.submit(self._get_wmd, key, idx)
-                    futures.append(future)
-                    if idx % 100 == 0:
-                        print(f"Calculated distances between approximately {idx} documents.")
+                if not relax:
+                    for idx, key in enumerate(self.pairs.keys()):
+                        future = executor.submit(self._get_wmd, key, idx)
+                        futures.append(future)
+                        if idx % 100 == 0:
+                            print(f"Calculated distances between approximately {idx} documents.")
+                else:
+                    for idx, key in enumerate(self.pairs.keys()):
+                        future = executor.submit(self._get_rwmd, key, idx)
+                        futures.append(future)
+                        if idx % 100 == 0:
+                            print(f"Calculated distances between approximately {idx} documents.")
         
         else:
-            for idx, key in enumerate(self.pairs.keys()):
-                self._get_wmd(key, idx)
-                if idx % 100 == 0:
-                    print(f"Calculated distances between {idx} documents.")
+            if not relax:
+                for idx, key in enumerate(self.pairs.keys()):
+                    self._get_wmd(key, idx)
+                    if idx % 100 == 0:
+                        print(f"Calculated distances between {idx} documents.")
+            else:
+                for idx, key in enumerate(self.pairs.keys()):
+                    self._get_rwmd(key, idx)
+                    if idx % 100 == 0:
+                        print(f"Calculated distances between {idx} documents.")
 
     def _get_wmd(self, key, doc_idx):
         doc1 = self.X1[key]
@@ -112,6 +158,12 @@ class WMDPairs():
         else:
             wmd = WMD(doc1, doc2, self.E,metric=self.metric).get_distance()
         self.distances[key, self.pairs[key]] = wmd 
+    
+    def _get_rwmd(self, key, doc_idx):
+        doc1 = self.X1[key]
+        doc2 = self.X2[self.pairs[key]]
+        rwmd = RWMD(doc1, doc2, self.E,metric=self.metric).get_distance()
+        self.distances[key, self.pairs[key]] = rwmd 
     
     def _add_word_costs(self, w1: list, w2: list, cost_m, doc_idx:int)->None:
         for idx,w in enumerate(w1):
