@@ -56,34 +56,27 @@ class WMD():
 class RWMD(WMD):
     def get_distance(self, idx2word = None, return_flow = False):
         if not return_flow:
-            rwmd, _, _ = self._rwmd()
+            rwmd, _, _, _, _ = self._rwmd()
             return rwmd
         
         elif return_flow:
             if idx2word == None:
                 print("idx2word argument is missing.")
             else:
-                rwmd, flow_X1, flow_X2 = self._rwmd()
+                rwmd, flow_X1, flow_X2, cost_X1, cost_X2 = self._rwmd()
                 w1 = [idx2word[idx] for idx in self.X1.idxs]
                 w2 = [idx2word[idx] for idx in self.X2.idxs]
-                cost_X1 = self._get_cost(flow_X1)
-                cost_X2 = self._get_cost(flow_X2)
-                return (wmd,flow_X1, flow_X2,cost_X1, cost_X2, w1, w2)
+            return rwmd, flow_X1, flow_X2, cost_X1, cost_X2, w1, w2
 
     def _rwmd(self):
-        potential_flow_X1 = list(j for j, dj in enumerate(self.X2.nbow.tolist()[0]) if dj > 0)
-        potential_flow_X2 = list(i for i, di in enumerate(self.X1.nbow.tolist()[0]) if di > 0)
-
-        print(potential_flow_X1)
-        print(len(potential_flow_X2))
-        print(len(potential_flow_X1))
-        print(self.C.shape)
-        flow_X1 = list(min(self.C[i, potential_flow_X1]) for i in range(len(self.X1.nbow[0])))
-        flow_X2 = list(min(self.C[j, potential_flow_X2]) for j in range(len(self.X2.nbow[0])))
-        cost_X1 = np.multiply(new_weights_dj, self.X1.nbow) 
-        cost_X2 = np.multiply(new_weights_di, self.X2.nbow)
+        potential_flow_X1 = list(j for j, dj in enumerate(self.X2_sig) if dj > 0)
+        potential_flow_X2 = list(i for i, di in enumerate(self.X1_sig) if di > 0)
+        flow_X1 = list(min(self.C[i, potential_flow_X1]) for i in range(len(self.X1_sig)))
+        flow_X2 = list(min(self.C[j, potential_flow_X2]) for j in range(len(self.X2_sig)))
+        cost_X1 = np.multiply(flow_X1, self.X1_sig) 
+        cost_X2 = np.multiply(flow_X2, self.X2_sig)
         rwmd = max(np.sum(cost_X1), np.sum(cost_X2))
-        return rwmd, flow_X1, flow_X2
+        return rwmd, flow_X1, flow_X2, cost_X1, cost_X2
             
 class WMDPairs():
     def __init__(self,X1:list,X2:list,pairs:dict,E:np.ndarray,idx2word:dict,metric:str='cosine') -> None:
@@ -114,6 +107,7 @@ class WMDPairs():
         self.sum_clusters = sum_clusters
         self.X1_feat = np.zeros((len(self.pairs),len(c2w)))
         self.X2_feat = np.zeros((len(self.pairs),len(c2w)))
+        self.relax = relax
         
         if sum_clusters:
             self.cc_X1 = {k: 0 for k in c2w.keys()}
@@ -162,7 +156,15 @@ class WMDPairs():
     def _get_rwmd(self, key, doc_idx):
         doc1 = self.X1[key]
         doc2 = self.X2[self.pairs[key]]
-        rwmd = RWMD(doc1, doc2, self.E,metric=self.metric).get_distance()
+        if self.return_flow:
+            rwmd, _, _, cost_X1, cost_X2, w1, w2 = RWMD(doc1, 
+                                                        doc2, 
+                                                        self.E,
+                                                        metric=self.metric).get_distance(self.idx2word,
+                                                                                         return_flow = True)
+            self._add_rwmd_costs(w1, w2, cost_X1, cost_X2, doc_idx)
+        else:
+            rwmd = RWMD(doc1, doc2, self.E,metric=self.metric).get_distance()
         self.distances[key, self.pairs[key]] = rwmd 
     
     def _add_word_costs(self, w1: list, w2: list, cost_m, doc_idx:int)->None:
@@ -180,6 +182,22 @@ class WMDPairs():
                 self.cc_X2[self.w2c[w]] += cost
                 self.X2_feat[doc_idx,self.w2c[w]] = cost
                 
+    def _add_rwmd_costs(self, w1: list, w2: list, cost_X1, cost_X2, doc_idx:int):
+        for idx,w in enumerate(w1):
+            cost = np.sum(cost_X1[idx])
+            self.wc_X1[w] += cost
+            if self.sum_clusters:
+                self.cc_X1[self.w2c[w]] += cost
+                self.X1_feat[doc_idx,self.w2c[w]] = cost
+                
+        for idx,w in enumerate(w2):
+            x2_idx = len(w1) + idx
+            cost = np.sum(cost_X2[x2_idx])
+            self.wc_X2[w] += cost
+            if self.sum_clusters:
+                self.cc_X2[self.w2c[w]] += cost
+                self.X2_feat[doc_idx,self.w2c[w]] = cost
+
     def get_differences(self) -> None:
         self.wc_X1_diff = dict(self.wc_X1)
         self.wc_X2_diff = dict(self.wc_X2)
