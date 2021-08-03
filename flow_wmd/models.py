@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import bottleneck as bn
 import itertools
 import numpy as np
+import time
 
 """
 TODO
@@ -123,19 +124,22 @@ class WMDPairs():
                     for idx, pair in enumerate(self.pairs): #tuple
                         future = executor.submit(self._get_wmd, pair, idx) #tuple
                         futures.append(future) 
-                        if idx % 100 == 0:
+                        if idx % 1000 == 0:
                             print(f"Calculated distances between approximately {idx} documents.")
                 else:
                     #dict for idx, key in enumerate(self.pairs.keys()):
                     #dict     future = executor.submit(self._get_rwmd, key, idx)
+                    t = time.process_time()
                     for idx, pair in enumerate(self.pairs): #tuple
                         future = executor.submit(self._get_rwmd, pair, idx) #tuple
                         futures.append(future)
-                        if idx % 100 == 0:
-                            print(f"Calculated distances between approximately {idx} documents.")
+                        if idx % 1000 == 0:
+                            elapsed = time.process_time() - t
+                            print(f"Calculated distances between approximately {idx} documents. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
         
         else:
             #dict for idx, key in enumerate(self.pairs.keys()):
+            t = time.process_time()
             for idx, pair in enumerate(self.pairs):
                 if not relax:
                 #dict self._get_wmd(key, idx)
@@ -143,18 +147,20 @@ class WMDPairs():
                 if relax:
                 #dict self._get_rwmd(key, idx)
                     self._get_rwmd(pair, idx)
-                if idx % 100 == 0:
-                    print(f"Calculated distances between {idx} documents.")
+                if idx % 1000 == 0:
+                    elapsed = time.process_time() - t
+                    print(f"Calculated distances between approximately {idx} documents. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
 #dict    def _get_wmd(self, key, doc_idx):
     def _get_wmd(self, pair, doc_idx):
         # dict doc1 = self.X1[key]
         # dict doc2 = self.X2[self.pairs[key]]
-        doc1 = pair[0]
-        doc2 = pair[0]
+        doc1 = self.X1[pair[0]]
+        doc2 = self.X2[pair[1]]
         if self.return_flow:
             wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E,metric=self.metric).get_distance(self.idx2word, 
                                                                                              return_flow = True)
+            print(wmd)
             self._add_word_costs(w1, w2, cost_m, doc_idx)
         else:
             wmd = WMD(doc1, doc2, self.E,metric=self.metric).get_distance()
@@ -165,8 +171,8 @@ class WMDPairs():
     def _get_rwmd(self, pair, doc_idx):
         # dict doc1 = self.X1[key]
         # dict doc2 = self.X2[self.pairs[key]]
-        doc1 = pair[0]
-        doc2 = pair[1]
+        doc1 = self.X1[pair[0]]
+        doc2 = self.X2[pair[1]]
         if self.return_flow:
             rwmd, _, _, cost_X1, cost_X2, w1, w2 = RWMD(doc1, 
                                                         doc2, 
