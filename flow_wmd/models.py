@@ -142,7 +142,8 @@ class WMDPairs():
                         futures.append(future)
                         if idx % 1000 == 0:
                             elapsed = time.process_time() - t
-                            print(f"Calculated distances between approximately {idx} documents. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
+                            print(f"Calculated distances between approximately {idx} documents."
+                                  f"{time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
         
         else:
             #dict for idx, key in enumerate(self.pairs.keys()):
@@ -156,7 +157,8 @@ class WMDPairs():
                     self._get_rwmd(pair, idx)
                 if idx % 1000 == 0:
                     elapsed = time.process_time() - t
-                    print(f"Calculated distances between approximately {idx} documents. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
+                    print(f"Calculated distances between approximately {idx} documents."
+                          f"{time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
 #dict    def _get_wmd(self, key, doc_idx):
     def _get_wmd(self, pair:tuple, doc_idx:int)->None:
