@@ -24,7 +24,7 @@ class WMD():
                  X1:Document, 
                  X2:Document, 
                  E:np.ndarray, 
-                 metric:str='cosine')->None:
+                 metric:str='cosine') -> None:
         self.X1 = X1
         self.X2 = X2
         self.T = E[X1.idxs + X2.idxs,]
@@ -115,10 +115,10 @@ class WMDPairs():
     def get_distances(self, 
                       return_flow: bool = False, 
                       sum_clusters: bool = False, 
-                      w2c: list = [], 
+                      w2c: Dict[str,int] = {}, 
                       c2w: Dict[int, str] = {},
-                      thread = False,
-                      relax = False) -> None:
+                      thread:bool = False,
+                      relax:bool = False) -> None:
         self.return_flow = return_flow
         self.sum_clusters = sum_clusters
         self.X1_feat = np.zeros((len(self.pairs),len(c2w)))
@@ -239,8 +239,8 @@ class WMDPairs():
         self.wc_X2_diff = self._count_diff(self.wc_X2, self.wc_X1, self.wc_X2_diff)
 
     def _count_diff(self, 
-                    cluster1:dict, 
-                    cluster2:dict, 
+                    cluster1:Dict[str,float], 
+                    cluster2:Dict[str,float], 
                     output:Dict[str,float]) -> Dict[str,float]:
         for k, v in cluster1.items():
             try:
@@ -255,7 +255,7 @@ class LC_RWMD():
                  X2:Document,
                  X1_nbow:csr_matrix,
                  X2_nbow:csr_matrix,
-                 E:np.ndarray)->None:
+                 E:np.ndarray) -> None:
         self.D1, self.D2 = [], []
         self.X1 = X1
         self.X2 = X2
