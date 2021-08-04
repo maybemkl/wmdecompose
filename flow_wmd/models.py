@@ -1,8 +1,9 @@
 from collections import Counter, namedtuple
 from concurrent.futures import ThreadPoolExecutor
+from .documents import Document
 from pyemd import emd, emd_with_flow
 from sklearn.metrics import euclidean_distances
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_distances
 
 import bottleneck as bn
 import itertools
@@ -19,12 +20,12 @@ TODO
 """
 
 class WMD():
-    def __init__(self, X1:list, X2:list, E, metric:str='cosine')->None:
+    def __init__(self, X1:Document, X2:Document, E:np.array, metric:str='cosine')->None:
         self.X1 = X1
         self.X2 = X2
         self.T = E[X1.idxs + X2.idxs,]
         if metric == 'cosine':
-            self.C = cosine_distance(self.T, self.T)
+            self.C = cosine_distances(self.T, self.T)
         if metric == 'euclidean':
             self.C = euclidean_distances(self.T, self.T)
         self.X1_sig = np.concatenate((X1.nbow[0,X1.idxs], 
@@ -55,7 +56,7 @@ class WMD():
                 return (wmd,flow,cost_m, w1, w2)
 
 class RWMD(WMD):
-    def get_distance(self, idx2word = None, return_flow = False):
+    def get_distance(self, idx2word:dict = None, return_flow:bool = False):
         if not return_flow:
             rwmd, _, _, _, _ = self._rwmd()
             return rwmd
@@ -80,7 +81,13 @@ class RWMD(WMD):
         return rwmd, flow_X1, flow_X2, cost_X1, cost_X2
             
 class WMDPairs():
-    def __init__(self,X1:list,X2:list,pairs:dict,E:np.ndarray,idx2word:dict,metric:str='cosine') -> None:
+    def __init__(self,
+                 X1:Document,
+                 X2:Document,
+                 pairs:dict,
+                 E:np.ndarray,
+                 idx2word:dict,
+                 metric:str='cosine') -> None:
         self.flows = []
         self.wc_X1 = self._word_dict(X1)
         self.wc_X2 = self._word_dict(X2)
@@ -152,7 +159,7 @@ class WMDPairs():
                     print(f"Calculated distances between approximately {idx} documents. {time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
 #dict    def _get_wmd(self, key, doc_idx):
-    def _get_wmd(self, pair, doc_idx):
+    def _get_wmd(self, pair:tuple, doc_idx:int)->None:
         # dict doc1 = self.X1[key]
         # dict doc2 = self.X2[self.pairs[key]]
         doc1 = self.X1[pair[0]]
@@ -168,7 +175,7 @@ class WMDPairs():
         self.distances[pair[0], pair[1]] = wmd 
     
 #dict    def _get_wmd(self, key, doc_idx):
-    def _get_rwmd(self, pair, doc_idx):
+    def _get_rwmd(self, pair:tuple, doc_idx:int)->None:
         # dict doc1 = self.X1[key]
         # dict doc2 = self.X2[self.pairs[key]]
         doc1 = self.X1[pair[0]]
@@ -200,7 +207,7 @@ class WMDPairs():
                 self.cc_X2[self.w2c[w]] += cost
                 self.X2_feat[doc_idx,self.w2c[w]] = cost
                 
-    def _add_rwmd_costs(self, w1: list, w2: list, cost_X1, cost_X2, doc_idx:int):
+    def _add_rwmd_costs(self, w1:list, w2:list, cost_X1:np.array, cost_X2:np.array, doc_idx:int):
         for idx,w in enumerate(w1):
             cost = np.sum(cost_X1[idx])
             self.wc_X1[w] += cost
@@ -222,7 +229,7 @@ class WMDPairs():
         self.wc_X1_diff = self._count_diff(self.wc_X1, self.wc_X2, self.wc_X1_diff)
         self.wc_X2_diff = self._count_diff(self.wc_X2, self.wc_X1, self.wc_X2_diff)
 
-    def _count_diff(self, cluster1, cluster2, output) -> dict:
+    def _count_diff(self, cluster1:dict, cluster2:dict, output:dict) -> dict:
         for k, v in cluster1.items():
             try:
                 output[k] = v - cluster2[k]
@@ -231,7 +238,10 @@ class WMDPairs():
         return output
     
 class LC_RWMD():
-    def __init__(self,X1,X2,X1_nbow,X2_nbow,E)->None:
+    def __init__(self,
+                 X1:Document,
+                 X2:Document,
+                 X1_nbow,X2_nbow,E:np.array)->None:
         self.D1, self.D2 = [], []
         self.X1 = X1
         self.X2 = X2
