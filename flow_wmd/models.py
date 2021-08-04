@@ -154,8 +154,6 @@ class WMDPairs():
                           f"{time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
     def _get_wmd(self, pair:tuple, doc_idx:int)->None:
-        # dict doc1 = self.X1[key]
-        # dict doc2 = self.X2[self.pairs[key]]
         doc1 = self.X1[pair[0]]
         doc2 = self.X2[pair[1]]
         if self.return_flow:
@@ -168,8 +166,6 @@ class WMDPairs():
         self.distances[pair[0], pair[1]] = wmd 
     
     def _get_rwmd(self, pair:tuple, doc_idx:int)->None:
-        # dict doc1 = self.X1[key]
-        # dict doc2 = self.X2[self.pairs[key]]
         doc1 = self.X1[pair[0]]
         doc2 = self.X2[pair[1]]
         if self.return_flow:
