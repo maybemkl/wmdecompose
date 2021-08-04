@@ -183,7 +183,6 @@ class WMDPairs():
         if self.return_flow:
             wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E,metric=self.metric).get_distance(self.idx2word, 
                                                                                              return_flow = True)
-            print(wmd)
             self._add_word_costs(w1, w2, cost_m, doc_idx)
         else:
             wmd = WMD(doc1, doc2, self.E,metric=self.metric).get_distance()
@@ -208,8 +207,7 @@ class WMDPairs():
     def _add_word_costs(self, 
                         w1:List[str], 
                         w2:List[str], 
-                        cost_X1:np.array, 
-                        cost_X2:np.array, 
+                        cost_m:np.array,
                         doc_idx:int) -> None:
         for idx,w in enumerate(w1):
             cost = np.sum(cost_m[idx,:])
@@ -285,7 +283,7 @@ class LC_RWMD():
                 Z = cosine_distances(self.E, doc2.vecs).min(axis=1)
             if metric == 'euclidean':
                 Z = euclidean_distances(self.E, doc2.vecs).min(axis=1)
-            lc_rwmd_costs = np.dot(self.X1_nbow.toarray(), Z)
+            lc_rwmd = np.dot(self.X1_nbow.toarray(), Z)
             self.D1.append(lc_rwmd)
             #lc_rwmd_costs = np.multiply(self.X1_nbow.toarray(), Z)
             #self.D1_costs.append(lc_rwmd_costs)
