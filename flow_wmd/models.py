@@ -165,10 +165,10 @@ class WMDPairs():
         else:
             t = time.process_time()
             for idx, pair in enumerate(self.pairs):
-                if not relax:
-                    self._get_wmd(pair, idx)
-                if relax:
+                if self.relax :
                     self._get_rwmd(pair, idx)
+                else:
+                    self._get_wmd(pair, idx)
                 if idx % 1000 == 0:
                     elapsed = time.process_time() - t
                     print(f"Calculated distances between approximately {idx} documents."
@@ -270,6 +270,7 @@ class LC_RWMD():
                  X2_nbow:csr_matrix,
                  E:np.ndarray) -> None:
         self.D1, self.D2 = [], []
+        self.D1_costs, self.D2_c = [], []
         self.X1 = X1
         self.X2 = X2
         self.X1_nbow = X1_nbow
@@ -283,8 +284,11 @@ class LC_RWMD():
                 Z = cosine_distances(self.E, doc2.vecs).min(axis=1)
             if metric == 'euclidean':
                 Z = euclidean_distances(self.E, doc2.vecs).min(axis=1)
-            lc_rwmd = np.dot(self.X1_nbow.toarray(), Z)
+            lc_rwmd_costs = np.dot(self.X1_nbow.toarray(), Z)
             self.D1.append(lc_rwmd)
+            #lc_rwmd_costs = np.multiply(self.X1_nbow.toarray(), Z)
+            #self.D1_costs.append(lc_rwmd_costs)
+            #self.D1.append(np.sum(lc_rwmd_costs))
 
         for idx1, doc1 in enumerate(self.X1):
             if metric == 'cosine':
@@ -293,6 +297,9 @@ class LC_RWMD():
                 Z = euclidean_distances(self.E, doc1.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X2_nbow.toarray(), Z)
             self.D2.append(lc_rwmd)
+            #lc_rwmd_costs = np.multiply(self.X2_nbow.toarray(), Z)
+            #self.D2_costs.append(lc_rwmd_costs)
+            #self.D2.append(np.sum(lc_rwmd_costs))
 
         self.D = np.maximum(np.vstack(self.D1), np.vstack(np.transpose(self.D2)))
         
