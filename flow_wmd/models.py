@@ -126,19 +126,15 @@ class WMDPairs():
             futures = []
             with ThreadPoolExecutor(max_workers=15) as executor:
                 if not relax:
-                    #dict for idx, key in enumerate(self.pairs.keys()):
-                    #dict    future = executor.submit(self._get_wmd, key, idx)
-                    for idx, pair in enumerate(self.pairs): #tuple
-                        future = executor.submit(self._get_wmd, pair, idx) #tuple
+                    for idx, pair in enumerate(self.pairs):
+                        future = executor.submit(self._get_wmd, pair, idx)
                         futures.append(future) 
                         if idx % 1000 == 0:
                             print(f"Calculated distances between approximately {idx} documents.")
                 else:
-                    #dict for idx, key in enumerate(self.pairs.keys()):
-                    #dict     future = executor.submit(self._get_rwmd, key, idx)
                     t = time.process_time()
-                    for idx, pair in enumerate(self.pairs): #tuple
-                        future = executor.submit(self._get_rwmd, pair, idx) #tuple
+                    for idx, pair in enumerate(self.pairs):
+                        future = executor.submit(self._get_rwmd, pair, idx)
                         futures.append(future)
                         if idx % 1000 == 0:
                             elapsed = time.process_time() - t
@@ -146,21 +142,17 @@ class WMDPairs():
                                   f"{time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
         
         else:
-            #dict for idx, key in enumerate(self.pairs.keys()):
             t = time.process_time()
             for idx, pair in enumerate(self.pairs):
                 if not relax:
-                #dict self._get_wmd(key, idx)
                     self._get_wmd(pair, idx)
                 if relax:
-                #dict self._get_rwmd(key, idx)
                     self._get_rwmd(pair, idx)
                 if idx % 1000 == 0:
                     elapsed = time.process_time() - t
                     print(f"Calculated distances between approximately {idx} documents."
                           f"{time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
 
-#dict    def _get_wmd(self, key, doc_idx):
     def _get_wmd(self, pair:tuple, doc_idx:int)->None:
         # dict doc1 = self.X1[key]
         # dict doc2 = self.X2[self.pairs[key]]
@@ -173,10 +165,8 @@ class WMDPairs():
             self._add_word_costs(w1, w2, cost_m, doc_idx)
         else:
             wmd = WMD(doc1, doc2, self.E,metric=self.metric).get_distance()
-        #dict self.distances[key, self.pairs[key]] = wmd 
         self.distances[pair[0], pair[1]] = wmd 
     
-#dict    def _get_wmd(self, key, doc_idx):
     def _get_rwmd(self, pair:tuple, doc_idx:int)->None:
         # dict doc1 = self.X1[key]
         # dict doc2 = self.X2[self.pairs[key]]
@@ -191,7 +181,6 @@ class WMDPairs():
             self._add_rwmd_costs(w1, w2, cost_X1, cost_X2, doc_idx)
         else:
             rwmd = RWMD(doc1, doc2, self.E,metric=self.metric).get_distance()
-        #dict self.distances[key, self.pairs[key]] = rwmd 
         self.distances[pair[0], pair[1]] = rwmd 
     
     def _add_word_costs(self, w1: list, w2: list, cost_m, doc_idx:int)->None:
