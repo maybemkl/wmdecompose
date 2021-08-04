@@ -38,7 +38,11 @@ class WMD():
         
     def get_distance(self, 
                      idx2word:Dict[int, str] = None, 
-                     return_flow:bool = False):
+                     return_flow:bool = False) -> Tuple[float, 
+                                                        List[float], 
+                                                        List[float], 
+                                                        List[str], 
+                                                        List[str]]:
         if not return_flow:
             wmd = emd(np.array(self.X1_sig, dtype=np.double), 
                       np.array(self.X2_sig, dtype=np.double), 
@@ -63,7 +67,13 @@ class WMD():
 class RWMD(WMD):
     def get_distance(self, 
                      idx2word:Dict[int, str] = None, 
-                     return_flow:bool = False):
+                     return_flow:bool = False) -> Tuple[float, 
+                                                        List[float], 
+                                                        List[float], 
+                                                        List[float], 
+                                                        List[float], 
+                                                        List[str], 
+                                                        List[str]]:
         if not return_flow:
             rwmd, _, _, _, _ = self._rwmd()
             return rwmd
@@ -77,7 +87,7 @@ class RWMD(WMD):
                 w2 = [idx2word[idx] for idx in self.X2.idxs]
             return rwmd, flow_X1, flow_X2, cost_X1, cost_X2, w1, w2
 
-    def _rwmd(self):
+    def _rwmd(self) -> Tuple[float, List[float], List[float], List[float], List[float]]:
         flow_X1, cost_X1 = self._rwmd_flow(self.X1_sig, self.X2_sig)
         flow_X2, cost_X2 = self._rwmd_flow(self.X2_sig, self.X1_sig)
         rwmd = max(np.sum(cost_X1), np.sum(cost_X2))
@@ -85,7 +95,7 @@ class RWMD(WMD):
     
     def _rwmd_flow(self, 
                    source_sig:List[float], 
-                   sink_sig:List[float]) -> Tuple[List[float],List[float]]:
+                   sink_sig:List[float]) -> Tuple[List[float], List[float]]:
         potential_flow = list(j for j, dj in enumerate(sink_sig) if dj > 0)
         flow = list(min(self.C[i, potential_flow]) for i in range(len(source_sig)))
         cost = np.multiply(flow, source_sig) 
