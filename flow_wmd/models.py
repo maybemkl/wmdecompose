@@ -269,7 +269,7 @@ class LC_RWMD():
 
         self.D = np.maximum(np.vstack(self.D1), np.vstack(np.transpose(self.D2)))
         
-    def get_L(self, n)->None:
+    def get_L(self, n:int)->None:
         self.Ls = []
         for idx1, doc1 in enumerate(self.X1):
             values = bn.partition(self.D[idx1], self.D[idx1].size-n)[:-n]
@@ -296,42 +296,3 @@ class LC_RWMD():
                     self.wmd_s.append(wmd)
                 else:
                     pass
-
-class WMDManyToMany():
-    def __init__(self,X1,X2,E,idx2word)->None:
-        self.flows = []
-        self.wc_X1 = self._word_dict(X1)
-        self.wc_X2 = self._word_dict(X2)
-        self.distances = np.zeros((len(X1), len(X2)))
-        self.X1 = X1
-        self.X2 = X2
-        self.E = E
-        self.idx2word = idx2word
-        
-    def _word_dict(self, docs)->dict:
-        vocab = list(set(list(itertools.chain.from_iterable(doc.words for doc in docs))))
-        word_dict = {word: 0 for word in vocab}
-        return word_dict
-        
-    def get_distances(self, return_flow = False):
-        if not return_flow:
-            for idx1, doc1 in enumerate(self.X1):
-                for idx2, doc2 in enumerate(self.X2):
-                    wmd = WMD(doc1, doc2, self.E).get_distance()
-                    self.distances[idx1, idx2] = wmd
-                    
-        elif return_flow:
-            for idx1, doc1 in enumerate(self.X1):
-                for idx2, doc2 in enumerate(self.X2):
-                    wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E).get_distance(self.idx2word, 
-                                                                                  return_flow = True)
-                    self._add_word_costs(w1, w2, cost_m)
-                    self.distances[idx1, idx2] = wmd   
-            return self.distances, self.wc_X1, self.wc_X2
-
-    def _add_word_costs(self, w1, w2, cost_m)->None:
-        for idx,w in enumerate(w1):
-            self.wc_X1[w] += np.sum(cost_m[idx,:])
-            
-        for idx,w in enumerate(w2):
-            self.wc_X2[w] += np.sum(cost_m[:,idx])
