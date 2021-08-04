@@ -146,13 +146,7 @@ class WMDPairs():
         if thread:
             futures = []
             with ThreadPoolExecutor(max_workers=15) as executor:
-                if not relax:
-                    for idx, pair in enumerate(self.pairs):
-                        future = executor.submit(self._get_wmd, pair, idx)
-                        futures.append(future) 
-                        if idx % 1000 == 0:
-                            print(f"Calculated distances between approximately {idx} documents.")
-                else:
+                if self.relax==True:
                     t = time.process_time()
                     for idx, pair in enumerate(self.pairs):
                         future = executor.submit(self._get_rwmd, pair, idx)
@@ -161,11 +155,18 @@ class WMDPairs():
                             elapsed = time.process_time() - t
                             print(f"Calculated distances between approximately {idx} documents."
                                   f"{time.strftime('%Hh%Mm%Ss', time.gmtime(elapsed))} elapsed.")
+                else:
+                    for idx, pair in enumerate(self.pairs):
+                        future = executor.submit(self._get_wmd, pair, idx)
+                        futures.append(future) 
+                        if idx % 1000 == 0:
+                            print(f"Calculated distances between approximately {idx} documents.")
+ 
         
         else:
             t = time.process_time()
             for idx, pair in enumerate(self.pairs):
-                if self.relax :
+                if self.relax==True:
                     self._get_rwmd(pair, idx)
                 else:
                     self._get_wmd(pair, idx)
