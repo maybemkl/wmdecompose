@@ -1,7 +1,15 @@
+from scipy.sparse.csr import csr_matrix
+from typing import Dict, List
+
 import numpy as np
 
 class Document():
-    def __init__(self, words:list, nbow:object, word2idx:dict, E:np.array, doc_idx:int):
+    def __init__(self, 
+                 words:List[str], 
+                 nbow:csr_matrix, 
+                 word2idx:Dict[str,int], 
+                 E:np.ndarray, 
+                 doc_idx:int):
         self.words = words
         #self.nbow = vectorizer.transform([" ".join(words)])
         self.nbow = nbow.toarray()
