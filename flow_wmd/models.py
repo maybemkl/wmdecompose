@@ -14,9 +14,8 @@ import time
 
 """
 TODO
-- Cluster input and output
 - Docstrings
-- Remove redundant classes and functions
+- Remove redundant functions
 """
 
 class WMD():
@@ -79,14 +78,16 @@ class RWMD(WMD):
             return rwmd, flow_X1, flow_X2, cost_X1, cost_X2, w1, w2
 
     def _rwmd(self):
-        potential_flow_X1 = list(j for j, dj in enumerate(self.X2_sig) if dj > 0)
-        potential_flow_X2 = list(i for i, di in enumerate(self.X1_sig) if di > 0)
-        flow_X1 = list(min(self.C[i, potential_flow_X1]) for i in range(len(self.X1_sig)))
-        flow_X2 = list(min(self.C[j, potential_flow_X2]) for j in range(len(self.X2_sig)))
-        cost_X1 = np.multiply(flow_X1, self.X1_sig) 
-        cost_X2 = np.multiply(flow_X2, self.X2_sig)
+        flow_X1, cost_X1 = self._rwmd_flow(self.X1_sig, self.X2_sig)
+        flow_X2, cost_X2 = self._rwmd_flow(self.X2_sig, self.X1_sig)
         rwmd = max(np.sum(cost_X1), np.sum(cost_X2))
         return rwmd, flow_X1, flow_X2, cost_X1, cost_X2
+    
+    def _rwmd_flow(self, source_sig, sink_sig):
+        potential_flow = list(j for j, dj in enumerate(sink_sig) if dj > 0)
+        flow = list(min(self.C[i, potential_flow]) for i in range(len(source_sig)))
+        cost = np.multiply(flow, source_sig) 
+        return flow, cost
             
 class WMDPairs():
     def __init__(self,
