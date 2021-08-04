@@ -58,7 +58,7 @@ class WMD():
                 w2 = [idx2word[idx] for idx in self.X2.idxs]
                 cost_m = flow*self.C
                 cost_m = cost_m[:len(self.X1.idxs),len(self.X1.idxs):].round(5)
-                return (wmd,flow,cost_m, w1, w2)
+                return wmd,flow,cost_m, w1, w2
 
 class RWMD(WMD):
     def get_distance(self, 
@@ -83,7 +83,9 @@ class RWMD(WMD):
         rwmd = max(np.sum(cost_X1), np.sum(cost_X2))
         return rwmd, flow_X1, flow_X2, cost_X1, cost_X2
     
-    def _rwmd_flow(self, source_sig, sink_sig):
+    def _rwmd_flow(self, 
+                   source_sig:List[float], 
+                   sink_sig:List[float]) -> Tuple[List[float],List[float]]:
         potential_flow = list(j for j, dj in enumerate(sink_sig) if dj > 0)
         flow = list(min(self.C[i, potential_flow]) for i in range(len(source_sig)))
         cost = np.multiply(flow, source_sig) 
@@ -268,7 +270,7 @@ class LC_RWMD():
         # Atasu et al LC-RWMD: One-to-many
         for idx2, doc2 in enumerate(self.X2):
             if metric == 'cosine':
-                Z = cosine_similarity(self.E, doc2.vecs).min(axis=1)
+                Z = cosine_distances(self.E, doc2.vecs).min(axis=1)
             if metric == 'euclidean':
                 Z = euclidean_distances(self.E, doc2.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X1_nbow.toarray(), Z)
@@ -276,7 +278,7 @@ class LC_RWMD():
 
         for idx1, doc1 in enumerate(self.X1):
             if metric == 'cosine':
-                Z = cosine_similarity(self.E, doc1.vecs).min(axis=1)
+                Z = cosine_distances(self.E, doc1.vecs).min(axis=1)
             if metric == 'euclidean':
                 Z = euclidean_distances(self.E, doc1.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X2_nbow.toarray(), Z)
