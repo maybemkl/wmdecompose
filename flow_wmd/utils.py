@@ -44,11 +44,12 @@ def get_phrases(sentences:list,
                 min_count:int=5, 
                 threshold:int=100, 
                 save:bool=False,
-                load:bool=False) -> list:
+                load:bool=False,
+                PATH:str="embeddings/") -> list:
     
     if load:
-        bigram=Phrases.load("embeddings/bigram_phrases.pkl")
-        trigram=Phrases.load("embeddings/trigram_phrases.pkl")
+        bigram=Phrases.load(f"{PATH}bigram_phrases.pkl")
+        trigram=Phrases.load(f"{PATH}trigram_phrases.pkl")
         
     else:
         print("Initializing bigram Phrases.")
@@ -58,9 +59,9 @@ def get_phrases(sentences:list,
     
     if save:
         print("Saving bigram Phrases.")
-        bigram.save("embeddings/bigram_phrases.pkl")
+        bigram.save(f"{PATH}bigram_phrases.pkl")
         print("Saving trigram Phrases.")
-        trigram.save("embeddings/trigram_phrases.pkl")
+        trigram.save(f"{PATH}trigram_phrases.pkl")
 
     print("Finding bigrams in data.")
     phrased_bi = [b for b in bigram[sentences]]
