@@ -1,24 +1,38 @@
 import copy
 import numpy as np
- 
-# Adapted from: https://rosettacode.org/wiki/Stable_marriage_problem#Python
-# Added typing
-    
-class Matcher():
-    def __init__(self, D:np.array):
-        X1_pref = {str(idx): list(row.argsort()) for (idx, row) in enumerate(D)}
-        X2_pref = {str(idx): list(row.argsort()) for (idx, row) in enumerate(D.T)}
-        
-        X1_pref = {kk: [str(v) for v in vv] for kk, vv in X1_pref.items()}
-        X2_pref = {kk: [str(v) for v in vv] for kk, vv in X2_pref.items()}
-        
-        self.guyprefers = X1_pref
-        self.galprefers = X2_pref
 
-        self.guys = sorted(X1_pref.keys())
-        self.gals = sorted(X2_pref.keys())
+class Matcher():
+    """
+    Class for finding the optimal Gale-Shapeley matches from a distance matrix where rows are "guys" and columns are "gals", 
+    following wording from the original GS paper.
+    
+    The algorithm is slightly biased to the "suitor", i.e. the "guy".
+    
+    Code adapted from: https://rosettacode.org/wiki/Stable_marriage_problem#Python
+    """
+    
+    def __init__(self, D:np.array):
+        """
+        Initialize class instance by finding preferences for guys and gals. 
+        The closer a "guys" is to "gal", the more preferable she is to him and vice versa.
+        """
+        
+        guy_pref = {str(idx): list(row.argsort()) for (idx, row) in enumerate(D)}
+        gal_pref = {str(idx): list(row.argsort()) for (idx, row) in enumerate(D.T)}
+        
+        guy_pref = {kk: [str(v) for v in vv] for kk, vv in guy_pref.items()}
+        gal_pref = {kk: [str(v) for v in vv] for kk, vv in gal_pref.items()}
+        
+        self.guyprefers = guy_pref
+        self.galprefers = gal_pref
+
+        self.guys = sorted(guy_pref.keys())
+        self.gals = sorted(gal_pref.keys())
 
     def matchmaker(self) -> dict:
+        """
+        Use the Gale Shapley algorithm to find a stable set of engagements
+        """
         guysfree = self.guys[:]
         engaged  = {}
         guyprefers2 = copy.deepcopy(self.guyprefers)
@@ -53,6 +67,10 @@ class Matcher():
         return engaged_int
         
     def check(self) -> bool:
+        """
+        Perturb the set engagements given by matchmaker() to form an unstable set of engagements then check this new set for stability.
+        """
+        
         inverseengaged = dict((v,k) for k,v in self.engaged.items())
         for she, he in self.engaged.items():
             shelikes = self.galprefers[she]
@@ -63,17 +81,15 @@ class Matcher():
                 guysgirl = inverseengaged[guy]
                 guylikes = self.guyprefers[guy]
                 if guylikes.index(guysgirl) > guylikes.index(she):
-                    print("%s and %s like each other better than "
-                          "their present partners: %s and %s, respectively"
-                          % (she, guy, he, guysgirl))
+                    print(f"{she} and {guy} like each other better than "
+                          f"their present partners: {he} and {guysgirl}, respectively")
                     return False
             for gal in helikesbetter:
                 girlsguy = self.engaged[gal]
                 gallikes = self.galprefers[gal]
                 if gallikes.index(girlsguy) > gallikes.index(he):
-                    print("%s and %s like each other better than "
-                          "their present partners: %s and %s, respectively"
-                          % (he, gal, she, girlsguy))
+                    print(f"{he} and {gal} like each other better than "
+                          f"their present partners: {she} and {girlsguy}, respectively")
                     return False
         self.check = True
         return True
