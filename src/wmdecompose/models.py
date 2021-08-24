@@ -285,9 +285,6 @@ class LC_RWMD():
                 Z = euclidean_distances(self.E, doc2.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X1_nbow.toarray(), Z)
             self.D1.append(lc_rwmd)
-            #lc_rwmd_costs = np.multiply(self.X1_nbow.toarray(), Z)
-            #self.D1_costs.append(lc_rwmd_costs)
-            #self.D1.append(np.sum(lc_rwmd_costs))
 
         for idx1, doc1 in enumerate(self.X1):
             if metric == 'cosine':
@@ -296,9 +293,6 @@ class LC_RWMD():
                 Z = euclidean_distances(self.E, doc1.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X2_nbow.toarray(), Z)
             self.D2.append(lc_rwmd)
-            #lc_rwmd_costs = np.multiply(self.X2_nbow.toarray(), Z)
-            #self.D2_costs.append(lc_rwmd_costs)
-            #self.D2.append(np.sum(lc_rwmd_costs))
 
         self.D = np.maximum(np.vstack(self.D1), np.vstack(np.transpose(self.D2)))
         
