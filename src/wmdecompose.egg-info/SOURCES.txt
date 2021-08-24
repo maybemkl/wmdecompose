@@ -1,0 +1,14 @@
+LICENSE
+README.md
+pyproject.toml
+setup.cfg
+setup.py
+src/wmdecompose/__init__.py
+src/wmdecompose/documents.py
+src/wmdecompose/gale_shapeley.py
+src/wmdecompose/models.py
+src/wmdecompose/utils.py
+src/wmdecompose.egg-info/PKG-INFO
+src/wmdecompose.egg-info/SOURCES.txt
+src/wmdecompose.egg-info/dependency_links.txt
+src/wmdecompose.egg-info/top_level.txt
