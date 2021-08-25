@@ -6,13 +6,14 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize.toktok import ToktokTokenizer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import re
 
-def kmeans_search(X:np.array, K:list):
+def kmeans_search(X:np.array, K:list) -> Tuple[List[float], List[float]]:
     sum_of_squared_distances = []
     silhouette = []
     for k in K:
@@ -99,7 +100,7 @@ def read_1w_corpus(name:str, sep:str="\t"):
     for line in open(name):
         yield line.split(sep)
 
-def remove_oov(text:str, tokenizer, oov):
+def remove_oov(text:str, tokenizer, oov:list)->str:
     """Removing the oov words."""
     tokens = tokenizer.tokenize(text)
     tokens = [token.strip() for token in tokens]
@@ -126,7 +127,7 @@ def tfidf_tokenize(text:str) -> list:
 # Custom preprocessing functions
 # Partly self-authored, partly from https://www.kaggle.com/lakshmi25npathi/sentiment-analysis-of-imdb-movie-reviews
 
-def strip_html(text:str):
+def strip_html(text:str)->str:
     """Removing the html strips"""
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text()
@@ -136,7 +137,7 @@ def remove_between_square_brackets(text):
     
     return re.sub('\[[^]]*\]', '', text)
 
-def denoise_text(text):
+def denoise_text(text:str)->str:
     """Removing the noisy text"""
     
     text = re.sub('<br / ><br / >', ' ', text)
@@ -144,21 +145,21 @@ def denoise_text(text):
     text = remove_between_square_brackets(text)
     return text
 
-def remove_special_characters(text, remove_digits=True):
+def remove_special_characters(text:str, remove_digits:bool=True) -> str:
     """Define function for removing special characters"""
 
     pattern=r'[^a-zA-z\s]'
     text=re.sub(pattern,'',text)
     return text
 
-def simple_lemmatizer(text):
+def simple_lemmatizer(text:str)->str:
     """Lemmatizing the text."""
     
     lemmatizer=WordNetLemmatizer() 
     text= ' '.join([lemmatizer.lemmatize(word) for word in text.split()])
     return text
 
-def remove_stopwords(text, stopword_list, tokenizer, is_lower_case=False):
+def remove_stopwords(text:str, stopword_list:list, tokenizer, is_lower_case:bool=False) -> str:
     """
     Removing the stopwords.
     """
