@@ -19,6 +19,10 @@ TODO
 """
 
 class WMD():
+    """
+    Full Word Mover's Distance with EMD using the pyemd library.
+    """
+    
     def __init__(self, 
                  X1:Document, 
                  X2:Document, 
@@ -65,6 +69,10 @@ class WMD():
                 return wmd,flow,cost_m, w1, w2
 
 class RWMD(WMD):
+    """
+    Relaxed Word Mover's Distance with matrix operations in numpy. Inherits the WMD class.
+    """
+    
     def get_distance(self, 
                      idx2word:Dict[int, str] = None, 
                      return_flow:bool = False) -> Tuple[float, 
@@ -102,6 +110,10 @@ class RWMD(WMD):
         return flow, cost
             
 class WMDPairs():
+    """
+    Word Mover's Distance between two sets of documents.
+    """
+    
     def __init__(self,
                  X1:Document,
                  X2:Document,
@@ -262,6 +274,11 @@ class WMDPairs():
         return output
     
 class LC_RWMD():
+    """
+    Linear-Complexity Relaxed Word Mover's Distancer using matrix operations in numpy.
+    For details, see https://arxiv.org/abs/1711.07227
+    """
+    
     def __init__(self,
                  X1:Document,
                  X2:Document,
