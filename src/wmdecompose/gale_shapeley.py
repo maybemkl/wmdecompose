@@ -78,7 +78,7 @@ class Matcher():
         then check this new set for stability.
         
         Returns:
-          
+          stable: Boolean showing whether the enagement structure of GS is stable or not.
         """
         
         inverseengaged = dict((v,k) for k,v in self.engaged.items())
@@ -93,14 +93,16 @@ class Matcher():
                 if guylikes.index(guysgirl) > guylikes.index(she):
                     print(f"{she} and {guy} like each other better than "
                           f"their present partners: {he} and {guysgirl}, respectively")
-                    return False
+                    stable = False
+                    return stable
             for gal in helikesbetter:
                 girlsguy = self.engaged[gal]
                 gallikes = self.galprefers[gal]
                 if gallikes.index(girlsguy) > gallikes.index(he):
                     print(f"{he} and {gal} like each other better than "
                           f"their present partners: {she} and {girlsguy}, respectively")
-                    return False
-        self.check = True
-        return True
+                    stable = False
+                    return stable
+        stable = True
+        return stable
         
