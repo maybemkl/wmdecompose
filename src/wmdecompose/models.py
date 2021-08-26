@@ -15,30 +15,38 @@ import time
 """
 TODO
 - Docstring parameters and return values with variable explanations.
+- Rename all X1 and X2 to source and sink?
 """
 
 class WMD():
-    """
-    Full Word Mover's Distance with EMD implemented using the pyemd library.
+    """Full Word Mover's Distance calculated for a pair of documents.
     For details on WMD, see http://proceedings.mlr.press/v37/kusnerb15.html.
+    EMD implemented using the pyemd library: https://github.com/wmayner/pyemd
+    
+    Attributes:
+      x1:
+      x2:
+      E: Embedding matrix for the words in the vocabulary.
+      metric: Distance metric, default is 'cosine' but can also be 'euclidean'.
     """
     
     def __init__(self, 
-                 X1:Document, 
-                 X2:Document, 
+                 x1:Document, 
+                 x2:Document, 
                  E:np.ndarray, 
                  metric:str='cosine') -> None:
-        self.X1 = X1
-        self.X2 = X2
-        self.T = E[X1.idxs + X2.idxs,]
+        """Initializes class WMD."""
+        self.x1 = x1
+        self.x2 = x2
+        self.T = E[x1.idxs + x2.idxs,]
         if metric == 'cosine':
             self.C = cosine_distances(self.T, self.T)
         if metric == 'euclidean':
             self.C = euclidean_distances(self.T, self.T)
-        self.X1_sig = np.concatenate((X1.nbow[0,X1.idxs], 
-                                      np.zeros(len(X2.idxs))))
-        self.X2_sig = np.concatenate((np.zeros(len(X1.idxs)), 
-                                      X2.nbow[0,X2.idxs]))
+        self.x1_sig = np.concatenate((x1.nbow[0,x1.idxs], 
+                                      np.zeros(len(x2.idxs))))
+        self.x2_sig = np.concatenate((np.zeros(len(x1.idxs)), 
+                                      x2.nbow[0,x2.idxs]))
         
     def get_distance(self, 
                      idx2word:Dict[int, str] = None, 
@@ -62,8 +70,8 @@ class WMD():
         """
         
         if not decompose:
-            wmd = emd(np.array(self.X1_sig, dtype=np.double), 
-                      np.array(self.X2_sig, dtype=np.double), 
+            wmd = emd(np.array(self.x1_sig, dtype=np.double), 
+                      np.array(self.x2_sig, dtype=np.double), 
                       np.array(self.C, dtype=np.double))
             
             return wmd
@@ -72,19 +80,21 @@ class WMD():
             if idx2word == None:
                 print("idx2word argument is missing.")
             else:
-                wmd, flow = emd_with_flow(np.array(self.X1_sig, dtype=np.double), 
-                                          np.array(self.X2_sig, dtype=np.double), 
+                wmd, flow = emd_with_flow(np.array(self.x1_sig, dtype=np.double), 
+                                          np.array(self.x2_sig, dtype=np.double), 
                                           np.array(self.C, dtype=np.double))
                 #m = np.array(self.wmd_wf[1])[:len(self.X1.idxs),len(self.X1.idxs):]
-                w1 = [idx2word[idx] for idx in self.X1.idxs]
-                w2 = [idx2word[idx] for idx in self.X2.idxs]
+                w1 = [idx2word[idx] for idx in self.x1.idxs]
+                w2 = [idx2word[idx] for idx in self.x2.idxs]
                 cost_m = flow*self.C
-                cost_m = cost_m[:len(self.X1.idxs),len(self.X1.idxs):].round(5)
+                cost_m = cost_m[:len(self.x1.idxs),len(self.x1.idxs):].round(5)
                 return wmd,flow,cost_m, w1, w2
 
 class RWMD(WMD):
-    """
-    Relaxed Word Mover's Distance with matrix operations in numpy. Inherits the WMD class.
+    """Relaxed Word Mover's Distance with matrix operations in numpy. Inherits the WMD class.
+    
+    Attributes:
+      see WMD class
     """
     
     def get_distance(self, 
@@ -96,6 +106,21 @@ class RWMD(WMD):
                                                       List[float], 
                                                       List[str], 
                                                       List[str]]:
+        """DESCRIPTION
+        
+        Args:
+          idx2word:
+          decompose:
+          
+        Returns:
+          rwmd:
+          flow_X1:
+          flow_X2:
+          cost_X1:
+          cost_X2:
+          w1:
+          w2:
+        """
         if not decompose:
             rwmd, _, _, _, _ = self._rwmd()
             return rwmd
@@ -124,6 +149,14 @@ class RWMD(WMD):
                         sink_sig:List[float]) -> Tuple[List[float], List[float]]:
         """
         Decompose RWMD into word-level flow and cost.
+        
+        Args:
+          source_sig:
+          sink_sig:
+          
+        Returns:
+          flow:
+          cost:
         """
         
         potential_flow = list(j for j, dj in enumerate(sink_sig) if dj > 0)
@@ -132,31 +165,33 @@ class RWMD(WMD):
         return flow, cost
             
 class WMDPairs():
-    """
-    Word Mover's Distance between two sets of documents.
+    """Word Mover's Distance between two sets of documents.
+    
+    Attributes:
+      flows:
+      ...
     """
     
     def __init__(self,
-                 X1:Document,
-                 X2:Document,
-                 pairs:Dict[int, int],
+                 X1_set:List[Document],
+                 X2_set:List[Document],
+                 pairs:List[Tuple[int, int]],
                  E:np.ndarray,
                  idx2word:Dict[int, str],
                  metric:str='cosine') -> None:
         self.flows = []
-        self.wc_X1 = self._word_dict(X1)
-        self.wc_X2 = self._word_dict(X2)
-        self.distances = np.zeros((len(X1), len(X2)))
-        self.X1 = X1
-        self.X2 = X2
+        self.wc_X1 = self._word_dict(X1_set)
+        self.wc_X2 = self._word_dict(X2_set)
+        self.distances = np.zeros((len(X1_set), len(X2_set)))
+        self.X1_set = X1_set
+        self.X2_set = X2_set
         self.E = E
         self.idx2word = idx2word
         self.pairs = pairs
         self.metric = metric
         
     def _word_dict(self, docs:list) -> Dict[str, int]:
-        """
-        Create dictionary for decomposed and accumulated word distances in one document set.
+        """Create dictionary for decomposed and accumulated word distances in one document set.
         
         Args:
           docs: A list of all the documents in the document set.
@@ -176,8 +211,7 @@ class WMDPairs():
                       c2w: Dict[int, str] = {},
                       thread:bool = False,
                       relax:bool = False) -> None:
-        """
-        Get the WMD or RWMD between two sets of documents, with or without decomposed word-level distances.
+        """Get the WMD or RWMD between two sets of documents, with or without decomposed word-level distances.
         Note: Threading adds only minimal gains to performance.
         
         Args:
@@ -235,10 +269,13 @@ class WMDPairs():
     def _get_wmd(self, 
                  pair:Tuple[int,int], 
                  doc_idx:int) -> None:
-        doc1 = self.X1[pair[0]]
-        doc2 = self.X2[pair[1]]
-        """
-        Get the WMD between two documents, with or without decomposed word-level distances.
+        doc1 = self.X1_set[pair[0]]
+        doc2 = self.X2_set[pair[1]]
+        """Get the WMD between two documents, with or without decomposed word-level distances.
+        
+        Args:
+          pair: A tuple of the indexes for the documents in two sets for which WMD should be counted.
+          doc_idx: The index of the pair in the list of pairs.
         """
         
         if self.decompose:
@@ -252,10 +289,14 @@ class WMDPairs():
     def _get_rwmd(self, 
                  pair:Tuple[int,int], 
                  doc_idx:int) -> None:
-        doc1 = self.X1[pair[0]]
-        doc2 = self.X2[pair[1]]
+        doc1 = self.X1_set[pair[0]]
+        doc2 = self.X2_set[pair[1]]
         """
         Get the RWMD between two documents, with or without decomposed word-level distances.
+        
+        Args:
+          pair: A tuple of the indexes for the documents in two sets for which RWMD should be counted.
+          doc_idx: The index of the pair in the list of pairs.
         """
 
         if self.decompose:
@@ -277,6 +318,12 @@ class WMDPairs():
         """
         Add the cost of words from source to sink and vice versa for vanilla WMD. 
         If clusters are summed, then costs are added by clusters as well.
+        
+        Args:
+          w1:
+          w2:
+          cost_m:
+          doc_idx:
         """
         
         for idx,w in enumerate(w1):
@@ -339,9 +386,9 @@ class WMDPairs():
         For details, see equation 8 on page 5 in Brunila & Violette (2021).
         
         Args:
-          cluster1:
-          cluster2:
-          output:
+          cluster1: A dictionary of words and their accumulated distances
+          cluster2: A dictionary of words and their accumulated distances
+          output: The difference between word distances when substracting distances in cluster2 from distances in cluster1
           
         Returns:
           output:
@@ -356,7 +403,7 @@ class WMDPairs():
     
 class LC_RWMD():
     """Linear-Complexity Relaxed Word Mover's Distance using matrix operations in numpy.
-    Implemented following Atasu et al (2020).
+    Implemented following Atasu et al. (2020).
     For details, see https://arxiv.org/abs/1711.07227
     
     Attributes:
@@ -408,5 +455,4 @@ class LC_RWMD():
                 Z = euclidean_distances(self.E, x1.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X2_nbow.toarray(), Z)
             self.D2.append(lc_rwmd)
-
         self.D = np.maximum(np.vstack(self.D1), np.vstack(np.transpose(self.D2)))
