@@ -7,7 +7,6 @@ from sklearn.metrics import euclidean_distances
 from sklearn.metrics.pairwise import cosine_distances
 from typing import Dict, List, Tuple
 
-import bottleneck as bn
 import itertools
 import numpy as np
 import time
@@ -36,6 +35,7 @@ class WMD():
                  E:np.ndarray, 
                  metric:str='cosine') -> None:
         """Initializes class WMD."""
+        
         self.x1 = x1
         self.x2 = x2
         self.T = E[x1.idxs + x2.idxs,]
@@ -55,7 +55,7 @@ class WMD():
                                                       List[float], 
                                                       List[str], 
                                                       List[str]]:
-        """Get WMD between a pair of documents, with or without decomposed word-level distances.
+        """Get the WMD between a pair of documents, with or without decomposed word-level distances.
         
         Args:
           idx2word: A dictionary mapping the index of word vectors to the words themselves.
@@ -106,12 +106,12 @@ class RWMD(WMD):
                                                       List[float], 
                                                       List[str], 
                                                       List[str]]:
-        """DESCRIPTION
+        """Get the RWMD between a pair of documents, with or without decomposed word-level distances.
         
         Args:
-          idx2word:
-          decompose:
-          
+          idx2word: A dictionary mapping the index of word vectors to the words themselves.
+          decompose: A boolean to determine whether word-level distances should be decomposed.
+
         Returns:
           rwmd:
           flow_X1:
@@ -135,8 +135,14 @@ class RWMD(WMD):
             return rwmd, flow_X1, flow_X2, cost_X1, cost_X2, w1, w2
 
     def _rwmd(self) -> Tuple[float, List[float], List[float], List[float], List[float]]:
-        """
-        Get the RWMD with word level flow and cost decomposed.
+        """Get the RWMD with word level flow and cost decomposed.
+        
+        Args:
+          rwmd:
+          flow_X1:
+          flow_X2:
+          cost_X1:
+          cost_X2:
         """
         
         flow_X1, cost_X1 = self._rwmd_decompose(self.X1_sig, self.X2_sig)
@@ -147,8 +153,7 @@ class RWMD(WMD):
     def _rwmd_decompose(self, 
                         source_sig:List[float], 
                         sink_sig:List[float]) -> Tuple[List[float], List[float]]:
-        """
-        Decompose RWMD into word-level flow and cost.
+        """Decompose RWMD into word-level flow and cost.
         
         Args:
           source_sig:
@@ -170,6 +175,7 @@ class WMDPairs():
     Attributes:
       flows:
       ...
+      ADD REST OR ATTRIBUTES!
     """
     
     def __init__(self,
@@ -291,8 +297,7 @@ class WMDPairs():
                  doc_idx:int) -> None:
         doc1 = self.X1_set[pair[0]]
         doc2 = self.X2_set[pair[1]]
-        """
-        Get the RWMD between two documents, with or without decomposed word-level distances.
+        """Get the RWMD between two documents, with or without decomposed word-level distances.
         
         Args:
           pair: A tuple of the indexes for the documents in two sets for which RWMD should be counted.
@@ -315,8 +320,7 @@ class WMDPairs():
                         w2:List[str], 
                         cost_m:np.array,
                         doc_idx:int) -> None:
-        """
-        Add the cost of words from source to sink and vice versa for vanilla WMD. 
+        """Add the cost of words from source to sink and vice versa for vanilla WMD. 
         If clusters are summed, then costs are added by clusters as well.
         
         Args:
@@ -346,9 +350,15 @@ class WMDPairs():
                         cost_X1:np.array, 
                         cost_X2:np.array, 
                         doc_idx:int) -> None:
-        """
-        Add the cost of words from source to sink and vice versa for RWMD. 
+        """Add the cost of words from source to sink and vice versa for RWMD. 
         If clusters are summed, then costs are added by clusters as well.
+        
+        Args:
+          w1:
+          w2:
+          cost_X1:
+          cost_X2:
+          dox_idx:
         """
         
         for idx,w in enumerate(w1):
@@ -367,8 +377,7 @@ class WMDPairs():
                 self.X2_feat[doc_idx,self.w2c[w]] = cost
 
     def get_differences(self) -> None:
-        """
-        Get differences in accumulated word-by-word distances between two sets of documents.
+        """Get differences in accumulated word-by-word distances between two sets of documents.
         For details, see equation 8 on page 5 in Brunila & Violette (2021).
         """
         
@@ -381,8 +390,7 @@ class WMDPairs():
                     cluster1:Dict[str,float], 
                     cluster2:Dict[str,float], 
                     output:Dict[str,float]) -> Dict[str,float]:
-        """
-        Loop for retrieving the differences in accumulated word-by-word distances between two sets of documents.
+        """Loop for retrieving the differences in accumulated word-by-word distances between two sets of documents.
         For details, see equation 8 on page 5 in Brunila & Violette (2021).
         
         Args:
