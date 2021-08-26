@@ -9,6 +9,9 @@ class Matcher():
     The algorithm is slightly biased to the "suitor", i.e. the "guy".
     
     Code adapted from: https://rosettacode.org/wiki/Stable_marriage_problem#Python
+    
+    Attributes:
+      D: Distance matrix with LC-RWMD from one document set ("guys") to another ("gals")
     """
     
     def __init__(self, D:np.array):
@@ -31,7 +34,10 @@ class Matcher():
 
     def matchmaker(self) -> dict:
         """
-        Use the Gale Shapley algorithm to find a stable set of engagements
+        Use the Gale Shapley algorithm to find a stable set of engagements.
+        
+        Returns:
+          engaged_int: Dictionary with the indexes for the final engagements between guys and gals.
         """
         guysfree = self.guys[:]
         engaged  = {}
@@ -70,6 +76,9 @@ class Matcher():
         """
         Perturb the set engagements given by matchmaker() to form an unstable set of engagements,
         then check this new set for stability.
+        
+        Returns:
+          
         """
         
         inverseengaged = dict((v,k) for k,v in self.engaged.items())
