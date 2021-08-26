@@ -159,7 +159,7 @@ def simple_lemmatizer(text:str)->str:
     text= ' '.join([lemmatizer.lemmatize(word) for word in text.split()])
     return text
 
-def remove_stopwords(text:str, stopword_list:list, tokenizer, is_lower_case:bool=False) -> str:
+def remove_stopwords(text:str, stopword_list:list, tokenizer:ToktokTokenizer, is_lower_case:bool=False) -> str:
     """
     Removing the stopwords.
     """
