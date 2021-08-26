@@ -1,4 +1,3 @@
-from collections import Counter, namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from .documents import Document
 from pyemd import emd, emd_with_flow
@@ -23,8 +22,8 @@ class WMD():
     EMD implemented using the pyemd library: https://github.com/wmayner/pyemd
     
     Attributes:
-      x1:
-      x2:
+      x1: The source document.
+      x2: The sink document.
       E: Embedding matrix for the words in the vocabulary.
       metric: Distance metric, default is 'cosine' but can also be 'euclidean'.
     """
@@ -113,14 +112,15 @@ class RWMD(WMD):
           decompose: A boolean to determine whether word-level distances should be decomposed.
 
         Returns:
-          rwmd:
+          rwmd: The RWMD between the pair of documents.
           flow_X1:
           flow_X2:
-          cost_X1:
+          cost_X1: 
           cost_X2:
-          w1:
-          w2:
+          w1: A list of words in the source document.
+          w2: A list of words in the sink document.
         """
+        
         if not decompose:
             rwmd, _, _, _, _ = self._rwmd()
             return rwmd
@@ -138,8 +138,8 @@ class RWMD(WMD):
         """Get the RWMD with word level flow and cost decomposed.
         
         Args:
-          rwmd:
-          flow_X1:
+          rwmd: The RWMD between the pair of documents.
+          flow_X1: 
           flow_X2:
           cost_X1:
           cost_X2:
@@ -175,7 +175,7 @@ class WMDPairs():
     Attributes:
       flows:
       ...
-      ADD REST OR ATTRIBUTES!
+      ADD REST OF ATTRIBUTES!
     """
     
     def __init__(self,
@@ -218,7 +218,6 @@ class WMDPairs():
                       thread:bool = False,
                       relax:bool = False) -> None:
         """Get the WMD or RWMD between two sets of documents, with or without decomposed word-level distances.
-        Note: Threading adds only minimal gains to performance.
         
         Args:
           decompose: A boolean to determine whether word-level distances should be decomposed.
@@ -227,6 +226,9 @@ class WMDPairs():
           c2w: A dictionary mapping clusters to words.
           thread: A boolean to determine whether threading should be used.
           relax: A boolean to determine whether RWMD should be returned instead of full WMD.
+          
+        Note: 
+          Threading adds only minimal gains to performance.
         """
         
         self.decompose = decompose
@@ -275,14 +277,14 @@ class WMDPairs():
     def _get_wmd(self, 
                  pair:Tuple[int,int], 
                  doc_idx:int) -> None:
-        doc1 = self.X1_set[pair[0]]
-        doc2 = self.X2_set[pair[1]]
         """Get the WMD between two documents, with or without decomposed word-level distances.
         
         Args:
           pair: A tuple of the indexes for the documents in two sets for which WMD should be counted.
           doc_idx: The index of the pair in the list of pairs.
         """
+        doc1 = self.X1_set[pair[0]]
+        doc2 = self.X2_set[pair[1]]
         
         if self.decompose:
             wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E,metric=self.metric).get_distance(self.idx2word, 
@@ -295,15 +297,15 @@ class WMDPairs():
     def _get_rwmd(self, 
                  pair:Tuple[int,int], 
                  doc_idx:int) -> None:
-        doc1 = self.X1_set[pair[0]]
-        doc2 = self.X2_set[pair[1]]
         """Get the RWMD between two documents, with or without decomposed word-level distances.
         
         Args:
           pair: A tuple of the indexes for the documents in two sets for which RWMD should be counted.
           doc_idx: The index of the pair in the list of pairs.
         """
-
+        doc1 = self.X1_set[pair[0]]
+        doc2 = self.X2_set[pair[1]]
+        
         if self.decompose:
             rwmd, _, _, cost_X1, cost_X2, w1, w2 = RWMD(doc1, 
                                                         doc2, 
@@ -324,8 +326,8 @@ class WMDPairs():
         If clusters are summed, then costs are added by clusters as well.
         
         Args:
-          w1:
-          w2:
+          w1: A list of words in the source document
+          w2: A list of words in the sink document
           cost_m:
           doc_idx:
         """
