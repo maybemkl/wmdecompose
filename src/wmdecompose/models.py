@@ -178,6 +178,15 @@ class WMDPairs():
                       relax:bool = False) -> None:
         """
         Get the WMD or RWMD between two sets of documents, with or without decomposed word-level distances.
+        Note: Threading adds only minimal gains to performance.
+        
+        Args:
+          decompose: A boolean to determine whether word-level distances should be decomposed.
+          sum_clusters: A boolean to determine whether word-level distances should be summed by cluster.
+          w2c: A dictionary mapping words to clusters.
+          c2w: A dictionary mapping clusters to words.
+          thread: A boolean to determine whether threading should be used.
+          relax: A boolean to determine whether RWMD should be returned instead of full WMD.
         """
         
         self.decompose = decompose
@@ -328,6 +337,14 @@ class WMDPairs():
         """
         Loop for retrieving the differences in accumulated word-by-word distances between two sets of documents.
         For details, see equation 8 on page 5 in Brunila & Violette (2021).
+        
+        Args:
+          cluster1:
+          cluster2:
+          output:
+          
+        Returns:
+          output:
         """
         
         for k, v in cluster1.items():
@@ -365,7 +382,7 @@ class LC_RWMD():
         self.E = E
         self.D1, self.D2 = [], []
         """
-        Initializes LC_RWMD class.
+        Initializes the LC_RWMD class.
         """
         
     def get_D(self, metric:str='cosine')->None:
@@ -373,7 +390,7 @@ class LC_RWMD():
         For details, see https://arxiv.org/abs/1711.07227
         
         Args:
-          metric: Distance metric to be used, default is 'cosine' but can optionally be 'euclidean'.
+          metric: Distance metric, default is 'cosine' but can also be 'euclidean'.
         """
         
         for idx2, x2 in enumerate(self.X2_set):
