@@ -4,8 +4,7 @@ from typing import Dict, List
 import numpy as np
 
 class Document():
-    """
-    Class to create the input for wmdecompose.
+    """Class to create the input for wmdecompose.
     
     Attributes:
       words: A list of the words in the document.
