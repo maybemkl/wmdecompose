@@ -188,8 +188,8 @@ class WMDPairs():
                  i2w:Dict[int, str],
                  metric:str='cosine') -> None:
         self.flows = []
-        self.wc_source = self._word_dict(source_set)
-        self.wc_sink = self._word_dict(sink_set)
+        self.wd_source = self._word_dict(source_set)
+        self.wd_sink = self._word_dict(sink_set)
         self.distances = np.zeros((len(source_set), len(sink_set)))
         self.source_set = source_set
         self.sink_set = sink_set
@@ -240,8 +240,8 @@ class WMDPairs():
         self.relax = relax
         
         if sum_clusters:
-            self.cc_source = {k: 0 for k in c2w.keys()}
-            self.cc_sink = {k: 0 for k in c2w.keys()}
+            self.cd_source = {k: 0 for k in c2w.keys()}
+            self.cd_sink = {k: 0 for k in c2w.keys()}
             self.w_sinkc = w_sinkc
         
         if thread:
@@ -336,16 +336,16 @@ class WMDPairs():
         
         for idx,w in enumerate(w_source):
             dist = np.sum(dist_m[idx,:])
-            self.wc_source[w] += dist
+            self.wd_source[w] += dist
             if self.sum_clusters:
-                self.cc_source[self.w_sinkc[w]] += dist
+                self.cd_source[self.w_sinkc[w]] += dist
                 self.source_feat[pair_idx,self.w_sinkc[w]] = dist
 
         for idx,w in enumerate(w_sink):
             dist = np.sum(dist_m[:,idx])
-            self.wc_sink[w] += dist
+            self.wd_sink[w] += dist
             if self.sum_clusters:
-                self.cc_sink[self.w_sinkc[w]] += dist
+                self.cd_sink[self.w_sinkc[w]] += dist
                 self.sink_feat[pair_idx,self.w_sinkc[w]] = dist
                 
     def _add_rwmd_dists(self, 
@@ -367,17 +367,17 @@ class WMDPairs():
         
         for idx,w in enumerate(w_source):
             dist = np.sum(dist_source[idx])
-            self.wc_source[w] += dist
+            self.wd_source[w] += dist
             if self.sum_clusters:
-                self.cc_source[self.w_sinkc[w]] += dist
+                self.cd_source[self.w_sinkc[w]] += dist
                 self.source_feat[pair_idx,self.w_sinkc[w]] = dist
                 
         for idx,w in enumerate(w_sink):
             sink_idx = len(w_source) + idx
             dist = np.sum(dist_sink[sink_idx])
-            self.wc_sink[w] += dist
+            self.wd_sink[w] += dist
             if self.sum_clusters:
-                self.cc_sink[self.w_sinkc[w]] += dist
+                self.cd_sink[self.w_sinkc[w]] += dist
                 self.sink_feat[pair_idx,self.w_sinkc[w]] = dist
 
     def get_differences(self) -> None:
@@ -385,10 +385,10 @@ class WMDPairs():
         For details, see equation 8 on page 5 in Brunila & Violette (2021).
         """
         
-        self.wc_source_diff = dict(self.wc_source)
-        self.wc_sink_diff = dict(self.wc_sink)
-        self.wc_source_diff = self._count_diff(self.wc_source, self.wc_sink, self.wc_source_diff)
-        self.wc_sink_diff = self._count_diff(self.wc_sink, self.wc_source, self.wc_sink_diff)
+        self.wd_source_diff = dict(self.wd_source)
+        self.wd_sink_diff = dict(self.wd_sink)
+        self.wd_source_diff = self._count_diff(self.wd_source, self.wd_sink, self.wd_source_diff)
+        self.wd_sink_diff = self._count_diff(self.wd_sink, self.wd_source, self.wd_sink_diff)
 
     def _count_diff(self, 
                     cl_source:Dict[str,float], 
