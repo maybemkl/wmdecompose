@@ -13,7 +13,7 @@ import time
 """
 TODO
 - Docstring parameters and return values with variable explanations.
-- Rename all X1 and X2 to source and sink?
+- Rename all source and X2 to source and sink?
 - Rename cost to distance, where appropriate
 """
 
@@ -23,33 +23,33 @@ class WMD():
     EMD implemented using the pyemd library: https://github.com/wmayner/pyemd
     
     Attributes:
-      x1: The source document.
+      source: The source document.
       x2: The sink document.
       E: Embedding matrix for the words in the vocabulary.
       metric: Distance metric, default is 'cosine' but can also be 'euclidean'.
     """
     
     def __init__(self, 
-                 x1:Document, 
+                 source:Document, 
                  x2:Document, 
                  E:np.ndarray, 
                  metric:str='cosine') -> None:
         """Initializes class WMD."""
         
-        self.x1 = x1
+        self.source = source
         self.x2 = x2
-        self.T = E[x1.idxs + x2.idxs,]
+        self.T = E[source.idxs + x2.idxs,]
         if metric == 'cosine':
             self.C = cosine_distances(self.T, self.T)
         if metric == 'euclidean':
             self.C = euclidean_distances(self.T, self.T)
-        self.x1_sig = np.concatenate((x1.nbow[0,x1.idxs], 
+        self.source_sig = np.concatenate((source.nbow[0,source.idxs], 
                                       np.zeros(len(x2.idxs))))
-        self.x2_sig = np.concatenate((np.zeros(len(x1.idxs)), 
+        self.x2_sig = np.concatenate((np.zeros(len(source.idxs)), 
                                       x2.nbow[0,x2.idxs]))
         
     def get_distance(self, 
-                     idx2word:Dict[int, str] = None, 
+                     i2w:Dict[int, str] = None, 
                      decompose:bool = False) -> Tuple[float, 
                                                       List[float], 
                                                       List[float], 
@@ -58,36 +58,36 @@ class WMD():
         """Get the WMD between a pair of documents, with or without decomposed word-level distances.
         
         Args:
-          idx2word: A dictionary mapping the index of word vectors to the words themselves.
+          i2w: A dictionary mapping the index of word vectors to the words themselves.
           decompose: A boolean to determine whether word-level distances should be decomposed.
 
         Returns:
           wmd: The WMD between the pair of documents.
           flow: 
-          cost_m: A matrix of the 
+          dist_m: A matrix of the 
           w1: List of the words in the source document.
           w2: List of the words in the sink document.
         """
         
         if not decompose:
-            wmd = emd(np.array(self.x1_sig, dtype=np.double), 
+            wmd = emd(np.array(self.source_sig, dtype=np.double), 
                       np.array(self.x2_sig, dtype=np.double), 
                       np.array(self.C, dtype=np.double))
             
             return wmd
         
         elif decompose:
-            if idx2word == None:
-                print("idx2word argument is missing.")
+            if i2w == None:
+                print("i2w argument is missing.")
             else:
-                wmd, flow = emd_with_flow(np.array(self.x1_sig, dtype=np.double), 
+                wmd, flow = emd_with_flow(np.array(self.source_sig, dtype=np.double), 
                                           np.array(self.x2_sig, dtype=np.double), 
                                           np.array(self.C, dtype=np.double))
-                w1 = [idx2word[idx] for idx in self.x1.idxs]
-                w2 = [idx2word[idx] for idx in self.x2.idxs]
-                cost_m = flow*self.C
-                cost_m = cost_m[:len(self.x1.idxs),len(self.x1.idxs):].round(5)
-                return wmd,flow,cost_m, w1, w2
+                w1 = [i2w[idx] for idx in self.source.idxs]
+                w2 = [i2w[idx] for idx in self.x2.idxs]
+                dist_m = flow*self.C
+                dist_m = dist_m[:len(self.source.idxs),len(self.source.idxs):].round(5)
+                return wmd,flow,dist_m, w1, w2
 
 class RWMD(WMD):
     """Relaxed Word Mover's Distance with matrix operations in numpy. Inherits the WMD class.
@@ -97,7 +97,7 @@ class RWMD(WMD):
     """
     
     def get_distance(self, 
-                     idx2word:Dict[int, str] = None, 
+                     i2w:Dict[int, str] = None, 
                      decompose:bool = False) -> Tuple[float, 
                                                       List[float], 
                                                       List[float], 
@@ -108,15 +108,15 @@ class RWMD(WMD):
         """Get the RWMD between a pair of documents, with or without decomposed word-level distances.
         
         Args:
-          idx2word: A dictionary mapping the index of word vectors to the words themselves.
+          i2w: A dictionary mapping the index of word vectors to the words themselves.
           decompose: A boolean to determine whether word-level distances should be decomposed.
 
         Returns:
           rwmd: The RWMD between the pair of documents.
-          flow_X1:
-          flow_X2:
-          cost_X1: 
-          cost_X2:
+          flow_source:
+          flow_sink:
+          cost_source: 
+          cost_sink:
           w1: A list of words in the source document.
           w2: A list of words in the sink document.
         """
@@ -126,29 +126,29 @@ class RWMD(WMD):
             return rwmd
         
         elif decompose:
-            if idx2word == None:
-                print("idx2word argument is missing.")
+            if i2w == None:
+                print("i2w argument is missing.")
             else:
-                rwmd, flow_X1, flow_X2, cost_X1, cost_X2 = self._rwmd()
-                w1 = [idx2word[idx] for idx in self.X1.idxs]
-                w2 = [idx2word[idx] for idx in self.X2.idxs]
-            return rwmd, flow_X1, flow_X2, cost_X1, cost_X2, w1, w2
+                rwmd, flow_source, flow_X2, cost_source, cost_X2 = self._rwmd()
+                w1 = [i2w[idx] for idx in self.source.idxs]
+                w2 = [i2w[idx] for idx in self.X2.idxs]
+            return rwmd, flow_source, flow_X2, cost_source, cost_X2, w1, w2
 
     def _rwmd(self) -> Tuple[float, List[float], List[float], List[float], List[float]]:
         """Get the RWMD with word level flow and cost decomposed.
         
         Args:
           rwmd: The RWMD between the pair of documents.
-          flow_X1: 
+          flow_source: 
           flow_X2:
-          cost_X1:
+          cost_source:
           cost_X2:
         """
         
-        flow_X1, cost_X1 = self._rwmd_decompose(self.X1_sig, self.X2_sig)
-        flow_X2, cost_X2 = self._rwmd_decompose(self.X2_sig, self.X1_sig)
-        rwmd = max(np.sum(cost_X1), np.sum(cost_X2))
-        return rwmd, flow_X1, flow_X2, cost_X1, cost_X2
+        flow_source, cost_source = self._rwmd_decompose(self.source_sig, self.X2_sig)
+        flow_X2, cost_X2 = self._rwmd_decompose(self.X2_sig, self.source_sig)
+        rwmd = max(np.sum(cost_source), np.sum(cost_X2))
+        return rwmd, flow_source, flow_X2, cost_source, cost_X2
     
     def _rwmd_decompose(self, 
                         source_sig:List[float], 
@@ -174,29 +174,29 @@ class WMDPairs():
     
     Attributes:
       flows:
-      X1_set:
+      source_set:
       X2_set
       pairs: A list of tuples where each tuple has a pair of indices, indicating which document pairs between the two sets to calculate the wmd for.
       E: Embedding matrix for the words in the vocabulary.
-      idx2word: A dictionary mapping the index of word vectors to the words themselves.
+      i2w: A dictionary mapping the index of word vectors to the words themselves.
       metric: Distance metric, default is 'cosine' but can also be 'euclidean'.
     """
     
     def __init__(self,
-                 X1_set:List[Document],
+                 source_set:List[Document],
                  X2_set:List[Document],
                  pairs:List[Tuple[int, int]],
                  E:np.ndarray,
-                 idx2word:Dict[int, str],
+                 i2w:Dict[int, str],
                  metric:str='cosine') -> None:
         self.flows = []
-        self.wc_X1 = self._word_dict(X1_set)
+        self.wc_source = self._word_dict(source_set)
         self.wc_X2 = self._word_dict(X2_set)
-        self.distances = np.zeros((len(X1_set), len(X2_set)))
-        self.X1_set = X1_set
+        self.distances = np.zeros((len(source_set), len(X2_set)))
+        self.source_set = source_set
         self.X2_set = X2_set
         self.E = E
-        self.idx2word = idx2word
+        self.i2w = i2w
         self.pairs = pairs
         self.metric = metric
         
@@ -237,12 +237,12 @@ class WMDPairs():
         
         self.decompose = decompose
         self.sum_clusters = sum_clusters
-        self.X1_feat = np.zeros((len(self.pairs),len(c2w)))
+        self.source_feat = np.zeros((len(self.pairs),len(c2w)))
         self.X2_feat = np.zeros((len(self.pairs),len(c2w)))
         self.relax = relax
         
         if sum_clusters:
-            self.cc_X1 = {k: 0 for k in c2w.keys()}
+            self.cc_source = {k: 0 for k in c2w.keys()}
             self.cc_X2 = {k: 0 for k in c2w.keys()}
             self.w2c = w2c
         
@@ -287,13 +287,13 @@ class WMDPairs():
           pair: A tuple of the indexes for the documents in two sets for which WMD should be counted.
           doc_idx: The index of the pair in the list of pairs.
         """
-        doc1 = self.X1_set[pair[0]]
+        doc1 = self.source_set[pair[0]]
         doc2 = self.X2_set[pair[1]]
         
         if self.decompose:
-            wmd, _, cost_m, w1, w2 = WMD(doc1, doc2, self.E,metric=self.metric).get_distance(self.idx2word, 
+            wmd, _, dist_m, w1, w2 = WMD(doc1, doc2, self.E,metric=self.metric).get_distance(self.i2w, 
                                                                                              decompose = True)
-            self._add_word_costs(w1, w2, cost_m, doc_idx)
+            self._add_word_costs(w1, w2, dist_m, doc_idx)
         else:
             wmd = WMD(doc1, doc2, self.E,metric=self.metric).get_distance()
         self.distances[pair[0], pair[1]] = wmd 
@@ -307,16 +307,16 @@ class WMDPairs():
           pair: A tuple of the indexes for the documents in two sets for which RWMD should be counted.
           doc_idx: The index of the pair in the list of pairs.
         """
-        doc1 = self.X1_set[pair[0]]
+        doc1 = self.source_set[pair[0]]
         doc2 = self.X2_set[pair[1]]
         
         if self.decompose:
-            rwmd, _, _, cost_X1, cost_X2, w1, w2 = RWMD(doc1, 
+            rwmd, _, _, cost_source, cost_X2, w1, w2 = RWMD(doc1, 
                                                         doc2, 
                                                         self.E,
-                                                        metric=self.metric).get_distance(self.idx2word,
+                                                        metric=self.metric).get_distance(self.i2w,
                                                                                          decompose = True)
-            self._add_rwmd_costs(w1, w2, cost_X1, cost_X2, doc_idx)
+            self._add_rwmd_costs(w1, w2, cost_source, cost_X2, doc_idx)
         else:
             rwmd = RWMD(doc1, doc2, self.E,metric=self.metric).get_distance()
         self.distances[pair[0], pair[1]] = rwmd 
@@ -324,7 +324,7 @@ class WMDPairs():
     def _add_word_costs(self, 
                         w1:List[str], 
                         w2:List[str], 
-                        cost_m:np.array,
+                        dist_m:np.array,
                         doc_idx:int) -> None:
         """Add the cost of words from source to sink and vice versa for vanilla WMD. 
         If clusters are summed, then costs are added by clusters as well.
@@ -332,19 +332,19 @@ class WMDPairs():
         Args:
           w1: A list of words in the source document
           w2: A list of words in the sink document
-          cost_m:
+          dist_m:
           doc_idx:
         """
         
         for idx,w in enumerate(w1):
-            cost = np.sum(cost_m[idx,:])
-            self.wc_X1[w] += cost
+            cost = np.sum(dist_m[idx,:])
+            self.wc_source[w] += cost
             if self.sum_clusters:
-                self.cc_X1[self.w2c[w]] += cost
-                self.X1_feat[doc_idx,self.w2c[w]] = cost
+                self.cc_source[self.w2c[w]] += cost
+                self.source_feat[doc_idx,self.w2c[w]] = cost
 
         for idx,w in enumerate(w2):
-            cost = np.sum(cost_m[:,idx])
+            cost = np.sum(dist_m[:,idx])
             self.wc_X2[w] += cost
             if self.sum_clusters:
                 self.cc_X2[self.w2c[w]] += cost
@@ -353,7 +353,7 @@ class WMDPairs():
     def _add_rwmd_costs(self, 
                         w1:List[str], 
                         w2:List[str], 
-                        cost_X1:np.array, 
+                        cost_source:np.array, 
                         cost_X2:np.array, 
                         doc_idx:int) -> None:
         """Add the cost of words from source to sink and vice versa for RWMD. 
@@ -362,17 +362,17 @@ class WMDPairs():
         Args:
           w1: A list of words in the source document
           w2: A list of words in the sink document
-          cost_X1:
+          cost_source:
           cost_X2:
           doc_idx:
         """
         
         for idx,w in enumerate(w1):
-            cost = np.sum(cost_X1[idx])
-            self.wc_X1[w] += cost
+            cost = np.sum(cost_source[idx])
+            self.wc_source[w] += cost
             if self.sum_clusters:
-                self.cc_X1[self.w2c[w]] += cost
-                self.X1_feat[doc_idx,self.w2c[w]] = cost
+                self.cc_source[self.w2c[w]] += cost
+                self.source_feat[doc_idx,self.w2c[w]] = cost
                 
         for idx,w in enumerate(w2):
             x2_idx = len(w1) + idx
@@ -387,10 +387,10 @@ class WMDPairs():
         For details, see equation 8 on page 5 in Brunila & Violette (2021).
         """
         
-        self.wc_X1_diff = dict(self.wc_X1)
+        self.wc_source_diff = dict(self.wc_source)
         self.wc_X2_diff = dict(self.wc_X2)
-        self.wc_X1_diff = self._count_diff(self.wc_X1, self.wc_X2, self.wc_X1_diff)
-        self.wc_X2_diff = self._count_diff(self.wc_X2, self.wc_X1, self.wc_X2_diff)
+        self.wc_source_diff = self._count_diff(self.wc_source, self.wc_X2, self.wc_source_diff)
+        self.wc_X2_diff = self._count_diff(self.wc_X2, self.wc_source, self.wc_X2_diff)
 
     def _count_diff(self, 
                     cluster1:Dict[str,float], 
@@ -421,24 +421,24 @@ class LC_RWMD():
     For details, see https://arxiv.org/abs/1711.07227
     
     Attributes:
-      X1_set: First set of documents.
+      source_set: First set of documents.
       X2_set: Second set of documents.
-      X1_nbow: Nbow or other vectorized (such as Tf-Idf) matrix representation of the documents in X1_set.
+      source_nbow: Nbow or other vectorized (such as Tf-Idf) matrix representation of the documents in source_set.
       X2_nbow: Nbow or other vectorized (such as Tf-Idf) matrix representation of the documents in X2_set.
       E: Embedding matrix for the words in the vocabulary.
-      D1: The RWMD distance matrix of documents from X1_set to X2_set.
-      D2: The RWMD distance matrix of documents from X2_set to X1_set.
+      D1: The RWMD distance matrix of documents from source_set to X2_set.
+      D2: The RWMD distance matrix of documents from X2_set to source_set.
     """
     
     def __init__(self,
-                 X1_set:List[Document],
+                 source_set:List[Document],
                  X2_set:List[Document],
-                 X1_nbow:csr_matrix,
+                 source_nbow:csr_matrix,
                  X2_nbow:csr_matrix,
                  E:np.ndarray) -> None:
-        self.X1_set = X1_set
+        self.source_set = source_set
         self.X2_set = X2_set
-        self.X1_nbow = X1_nbow
+        self.source_nbow = source_nbow
         self.X2_nbow = X2_nbow
         self.E = E
         self.D1, self.D2 = [], []
@@ -459,14 +459,14 @@ class LC_RWMD():
                 Z = cosine_distances(self.E, x2.vecs).min(axis=1)
             if metric == 'euclidean':
                 Z = euclidean_distances(self.E, x2.vecs).min(axis=1)
-            lc_rwmd = np.dot(self.X1_nbow.toarray(), Z)
+            lc_rwmd = np.dot(self.source_nbow.toarray(), Z)
             self.D1.append(lc_rwmd)
 
-        for idx1, x1 in enumerate(self.X1_set):
+        for idsource, source in enumerate(self.source_set):
             if metric == 'cosine':
-                Z = cosine_distances(self.E, x1.vecs).min(axis=1)
+                Z = cosine_distances(self.E, source.vecs).min(axis=1)
             if metric == 'euclidean':
-                Z = euclidean_distances(self.E, x1.vecs).min(axis=1)
+                Z = euclidean_distances(self.E, source.vecs).min(axis=1)
             lc_rwmd = np.dot(self.X2_nbow.toarray(), Z)
             self.D2.append(lc_rwmd)
         self.D = np.maximum(np.vstack(self.D1), np.vstack(np.transpose(self.D2)))
