@@ -137,10 +137,10 @@ class RWMD(WMD):
         
         Args:
           rwmd: The RWMD between the pair of documents.
-          flow_source: 
-          flow_sink:
-          dist_source: Array of distance contributions of words from source to sink.
-          dist_sink: Array of distance contributions of words from sink to source.
+          flow_source: A list of the amount of flow sent from each word in the source.
+          flow_sink: A list of the amount of flow sent from each word in the sink.
+          dist_source: Array of distance contributed of words from source.
+          dist_sink: Array of distance contributions of words from sink.
         """
         
         flow_source, dist_source = self._rwmd_decompose(self.source_sig, self.sink_sig)
@@ -158,8 +158,8 @@ class RWMD(WMD):
           sink_sig:
           
         Returns:
-          flow:
-          dist: The RWMD from source to sink.
+          flow: A list with the amount of 
+          dist: A list of the distance of words from source to sink.
         """
         
         potential_flow = list(j for j, dj in enumerate(sink_sig) if dj > 0)
@@ -171,13 +171,13 @@ class WMDPairs():
     """Word Mover's Distance between two sets of documents.
     
     Attributes:
-      flows:
-      source_set:
-      sink_set
+      flows: 
+      source_set: A list of the documents in the source set.
+      sink_set: A list of the documents in the sink set.
       pairs: A list of tuples where each tuple has a pair of indices, indicating which document pairs between the two sets to calculate the wmd for.
       E: Embedding matrix for the words in the vocabulary.
       i2w: A dictionary mapping the index of word vectors to the words themselves.
-      metric: Distance metric, default is 'cosine' but can also be 'euclidean'.
+      metric: A string specifying a distance metric. Default is 'cosine' but can also be 'euclidean'.
     """
     
     def __init__(self,
@@ -285,15 +285,15 @@ class WMDPairs():
           pair: A tuple of the indexes for the documents in two sets for which WMD should be counted.
           pair_idx: The index of the pair in the list of pairs.
         """
-        doc1 = self.source_set[pair[0]]
-        doc2 = self.sink_set[pair[1]]
+        doc_source = self.source_set[pair[0]]
+        doc_sink = self.sink_set[pair[1]]
         
         if self.decompose:
-            wmd, _, dist_m, w_source, w_sink = WMD(doc1, doc2, self.E,metric=self.metric).get_distance(self.i2w, 
+            wmd, _, dist_m, w_source, w_sink = WMD(doc_source, doc_sink, self.E,metric=self.metric).get_distance(self.i2w, 
                                                                                              decompose = True)
             self._add_word_dists(w_source, w_sink, dist_m, pair_idx)
         else:
-            wmd = WMD(doc1, doc2, self.E,metric=self.metric).get_distance()
+            wmd = WMD(doc_source, doc_sink, self.E,metric=self.metric).get_distance()
         self.distances[pair[0], pair[1]] = wmd 
     
     def _get_rwmd(self, 
@@ -305,18 +305,18 @@ class WMDPairs():
           pair: A tuple of the indexes for the documents in two sets for which RWMD should be counted.
           pair_idx: The index of the pair in the list of pairs.
         """
-        doc1 = self.source_set[pair[0]]
-        doc2 = self.sink_set[pair[1]]
+        doc_source = self.source_set[pair[0]]
+        doc_sink = self.sink_set[pair[1]]
         
         if self.decompose:
-            rwmd, _, _, dist_source, dist_sink, w_source, w_sink = RWMD(doc1, 
-                                                        doc2, 
+            rwmd, _, _, dist_source, dist_sink, w_source, w_sink = RWMD(doc_source, 
+                                                        doc_sink, 
                                                         self.E,
                                                         metric=self.metric).get_distance(self.i2w,
                                                                                          decompose = True)
             self._add_rwmd_dists(w_source, w_sink, dist_source, dist_sink, pair_idx)
         else:
-            rwmd = RWMD(doc1, doc2, self.E,metric=self.metric).get_distance()
+            rwmd = RWMD(doc_source, doc_sink, self.E,metric=self.metric).get_distance()
         self.distances[pair[0], pair[1]] = rwmd 
     
     def _add_word_dists(self, 
@@ -400,10 +400,9 @@ class WMDPairs():
         Args:
           cl_source: A dictionary of words and their accumulated distances
           cl_sink: A dictionary of words and their accumulated distances
-          output: The difference between word distances when substracting distances in cl_sink from distances in cl_source
-          
+          output: A dictionary with the source word level distances as initial values.
         Returns:
-          output: 
+          output: The updated difference between word distances when substracting distances in cl_sink from distances in cl_source
         """
         
         for k, v in cl_source.items():
