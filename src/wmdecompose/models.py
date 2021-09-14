@@ -62,10 +62,10 @@ class WMD():
 
         Returns:
           wmd: The WMD between the pair of documents.
-          flow: A . Returned only if word-level distances are decomposed.
-          cost_m: Returned only if word-level distances are decomposed.
-          w1: Returned only if word-level distances are decomposed.
-          w2: Returned only if word-level distances are decomposed.
+          flow: 
+          cost_m: 
+          w1: 
+          w2: 
         """
         
         if not decompose:
@@ -82,7 +82,6 @@ class WMD():
                 wmd, flow = emd_with_flow(np.array(self.x1_sig, dtype=np.double), 
                                           np.array(self.x2_sig, dtype=np.double), 
                                           np.array(self.C, dtype=np.double))
-                #m = np.array(self.wmd_wf[1])[:len(self.X1.idxs),len(self.X1.idxs):]
                 w1 = [idx2word[idx] for idx in self.x1.idxs]
                 w2 = [idx2word[idx] for idx in self.x2.idxs]
                 cost_m = flow*self.C
@@ -174,8 +173,12 @@ class WMDPairs():
     
     Attributes:
       flows:
-      ...
-      ADD REST OF ATTRIBUTES!
+      X1_set:
+      X2_set
+      pairs: A list of tuples where each tuple has a pair of indices, indicating which document pairs between the two sets to calculate the wmd for.
+      E: Embedding matrix for the words in the vocabulary.
+      idx2word: A dictionary mapping the index of word vectors to the words themselves.
+      metric: Distance metric, default is 'cosine' but can also be 'euclidean'.
     """
     
     def __init__(self,
@@ -356,11 +359,11 @@ class WMDPairs():
         If clusters are summed, then costs are added by clusters as well.
         
         Args:
-          w1:
-          w2:
+          w1: A list of words in the source document
+          w2: A list of words in the sink document
           cost_X1:
           cost_X2:
-          dox_idx:
+          doc_idx:
         """
         
         for idx,w in enumerate(w1):
