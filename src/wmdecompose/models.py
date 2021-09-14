@@ -10,11 +10,6 @@ import itertools
 import numpy as np
 import time
 
-"""
-TODO
-- Docstring parameters and return values with variable explanations.
-"""
-
 class WMD():
     """Full Word Mover's Distance calculated for a pair of documents.
     For details on WMD, see http://proceedings.mlr.press/v37/kusnerb15.html.
