@@ -111,10 +111,10 @@ class RWMD(WMD):
 
         Returns:
           rwmd: The RWMD between the pair of documents.
-          flow_source:
-          flow_sink:
-          dist_source: 
-          dist_sink:
+          flow_source: A list of the 'mass' or amount of each word in the source to be moved to the words in the sink.
+          flow_sink:  A list of the 'mass' or amount of each word in the sink to be moved to the words in the source.
+          dist_source: Array of distance contributions of words from source to sink.
+          dist_sink: Array of distance contributions of words from sink to source.
           w_source: A list of words in the source document.
           w_sink: A list of words in the sink document.
         """
@@ -139,8 +139,8 @@ class RWMD(WMD):
           rwmd: The RWMD between the pair of documents.
           flow_source: 
           flow_sink:
-          dist_source:
-          dist_sink:
+          dist_source: Array of distance contributions of words from source to sink.
+          dist_sink: Array of distance contributions of words from sink to source.
         """
         
         flow_source, dist_source = self._rwmd_decompose(self.source_sig, self.sink_sig)
@@ -159,7 +159,7 @@ class RWMD(WMD):
           
         Returns:
           flow:
-          dist:
+          dist: The RWMD from source to sink.
         """
         
         potential_flow = list(j for j, dj in enumerate(sink_sig) if dj > 0)
@@ -278,12 +278,12 @@ class WMDPairs():
 
     def _get_wmd(self, 
                  pair:Tuple[int,int], 
-                 doc_idx:int) -> None:
+                 pair_idx:int) -> None:
         """Get the WMD between two documents, with or without decomposed word-level distances.
         
         Args:
           pair: A tuple of the indexes for the documents in two sets for which WMD should be counted.
-          doc_idx: The index of the pair in the list of pairs.
+          pair_idx: The index of the pair in the list of pairs.
         """
         doc1 = self.source_set[pair[0]]
         doc2 = self.sink_set[pair[1]]
@@ -291,19 +291,19 @@ class WMDPairs():
         if self.decompose:
             wmd, _, dist_m, w_source, w_sink = WMD(doc1, doc2, self.E,metric=self.metric).get_distance(self.i2w, 
                                                                                              decompose = True)
-            self._add_word_dists(w_source, w_sink, dist_m, doc_idx)
+            self._add_word_dists(w_source, w_sink, dist_m, pair_idx)
         else:
             wmd = WMD(doc1, doc2, self.E,metric=self.metric).get_distance()
         self.distances[pair[0], pair[1]] = wmd 
     
     def _get_rwmd(self, 
                  pair:Tuple[int,int], 
-                 doc_idx:int) -> None:
+                 pair_idx:int) -> None:
         """Get the RWMD between two documents, with or without decomposed word-level distances.
         
         Args:
           pair: A tuple of the indexes for the documents in two sets for which RWMD should be counted.
-          doc_idx: The index of the pair in the list of pairs.
+          pair_idx: The index of the pair in the list of pairs.
         """
         doc1 = self.source_set[pair[0]]
         doc2 = self.sink_set[pair[1]]
@@ -314,7 +314,7 @@ class WMDPairs():
                                                         self.E,
                                                         metric=self.metric).get_distance(self.i2w,
                                                                                          decompose = True)
-            self._add_rwmd_dists(w_source, w_sink, dist_source, dist_sink, doc_idx)
+            self._add_rwmd_dists(w_source, w_sink, dist_source, dist_sink, pair_idx)
         else:
             rwmd = RWMD(doc1, doc2, self.E,metric=self.metric).get_distance()
         self.distances[pair[0], pair[1]] = rwmd 
@@ -323,7 +323,7 @@ class WMDPairs():
                         w_source:List[str], 
                         w_sink:List[str], 
                         dist_m:np.array,
-                        doc_idx:int) -> None:
+                        pair_idx:int) -> None:
         """Add the distance of words from source to sink and vice versa for vanilla WMD. 
         If clusters are summed, then distances are added by clusters as well.
         
@@ -331,7 +331,7 @@ class WMDPairs():
           w_source: A list of words in the source document
           w_sink: A list of words in the sink document
           dist_m: A matrix of the wmd decomposed into word level distances with source in rows and sink in columns.
-          doc_idx:
+          pair_idx: The index of the pair in the list of pairs.
         """
         
         for idx,w in enumerate(w_source):
@@ -339,30 +339,30 @@ class WMDPairs():
             self.wc_source[w] += dist
             if self.sum_clusters:
                 self.cc_source[self.w_sinkc[w]] += dist
-                self.source_feat[doc_idx,self.w_sinkc[w]] = dist
+                self.source_feat[pair_idx,self.w_sinkc[w]] = dist
 
         for idx,w in enumerate(w_sink):
             dist = np.sum(dist_m[:,idx])
             self.wc_sink[w] += dist
             if self.sum_clusters:
                 self.cc_sink[self.w_sinkc[w]] += dist
-                self.sink_feat[doc_idx,self.w_sinkc[w]] = dist
+                self.sink_feat[pair_idx,self.w_sinkc[w]] = dist
                 
     def _add_rwmd_dists(self, 
                         w_source:List[str], 
                         w_sink:List[str], 
                         dist_source:np.array, 
                         dist_sink:np.array, 
-                        doc_idx:int) -> None:
+                        pair_idx:int) -> None:
         """Add the distance contributions of words from source to sink and vice versa for RWMD. 
         If clusters are summed, then distances are added by clusters as well.
         
         Args:
           w_source: A list of words in the source document
           w_sink: A list of words in the sink document
-          dist_source:
-          dist_sink:
-          doc_idx:
+          dist_source: Array of distance contributions of words from source to sink.
+          dist_sink: Array of distance contributions of words from sink to source.
+          pair_idx: The index of the pair in the list of pairs.
         """
         
         for idx,w in enumerate(w_source):
@@ -370,7 +370,7 @@ class WMDPairs():
             self.wc_source[w] += dist
             if self.sum_clusters:
                 self.cc_source[self.w_sinkc[w]] += dist
-                self.source_feat[doc_idx,self.w_sinkc[w]] = dist
+                self.source_feat[pair_idx,self.w_sinkc[w]] = dist
                 
         for idx,w in enumerate(w_sink):
             sink_idx = len(w_source) + idx
@@ -378,7 +378,7 @@ class WMDPairs():
             self.wc_sink[w] += dist
             if self.sum_clusters:
                 self.cc_sink[self.w_sinkc[w]] += dist
-                self.sink_feat[doc_idx,self.w_sinkc[w]] = dist
+                self.sink_feat[pair_idx,self.w_sinkc[w]] = dist
 
     def get_differences(self) -> None:
         """Get differences in accumulated word-by-word distances between two sets of documents.
@@ -391,24 +391,24 @@ class WMDPairs():
         self.wc_sink_diff = self._count_diff(self.wc_sink, self.wc_source, self.wc_sink_diff)
 
     def _count_diff(self, 
-                    cluster1:Dict[str,float], 
-                    cluster2:Dict[str,float], 
+                    cl_source:Dict[str,float], 
+                    cl_sink:Dict[str,float], 
                     output:Dict[str,float]) -> Dict[str,float]:
         """Loop for retrieving the differences in accumulated word-by-word distances between two sets of documents.
         For details, see equation 8 on page 5 in Brunila & Violette (2021).
         
         Args:
-          cluster1: A dictionary of words and their accumulated distances
-          cluster2: A dictionary of words and their accumulated distances
-          output: The difference between word distances when substracting distances in cluster2 from distances in cluster1
+          cl_source: A dictionary of words and their accumulated distances
+          cl_sink: A dictionary of words and their accumulated distances
+          output: The difference between word distances when substracting distances in cl_sink from distances in cl_source
           
         Returns:
-          output:
+          output: 
         """
         
-        for k, v in cluster1.items():
+        for k, v in cl_source.items():
             try:
-                output[k] = v - cluster2[k]
+                output[k] = v - cl_sink[k]
             except:
                 output[k] = v
         return output
