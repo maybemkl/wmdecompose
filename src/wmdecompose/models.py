@@ -13,7 +13,6 @@ import time
 """
 TODO
 - Docstring parameters and return values with variable explanations.
-- Rename cost to distance, where appropriate
 """
 
 class WMD():
@@ -63,7 +62,7 @@ class WMD():
         Returns:
           wmd: The WMD between the pair of documents.
           flow: 
-          dist_m: A matrix of the 
+          dist_m: A matrix of the wmd decomposed into word level distances with source in rows and sink in columns.
           w_source: List of the words in the source document.
           w_sink: List of the words in the sink document.
         """
@@ -331,7 +330,7 @@ class WMDPairs():
         Args:
           w_source: A list of words in the source document
           w_sink: A list of words in the sink document
-          dist_m:
+          dist_m: A matrix of the wmd decomposed into word level distances with source in rows and sink in columns.
           doc_idx:
         """
         
