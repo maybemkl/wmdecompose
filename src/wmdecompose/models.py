@@ -14,6 +14,7 @@ import time
 TODO
 - Docstring parameters and return values with variable explanations.
 - Rename all X1 and X2 to source and sink?
+- Rename cost to distance, where appropriate
 """
 
 class WMD():
@@ -63,9 +64,9 @@ class WMD():
         Returns:
           wmd: The WMD between the pair of documents.
           flow: 
-          cost_m: 
-          w1: 
-          w2: 
+          cost_m: A matrix of the 
+          w1: List of the words in the source document.
+          w2: List of the words in the sink document.
         """
         
         if not decompose:
