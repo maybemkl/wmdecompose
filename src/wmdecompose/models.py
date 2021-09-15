@@ -80,7 +80,7 @@ class WMD():
                 w_sink = [i2w[idx] for idx in self.sink.idxs]
                 dist_m = flow*self.costs
                 dist_m = dist_m[:len(self.source.idxs),len(self.source.idxs):].round(5)
-                return wmd,flow,dist_m, w_source, w_sink
+                return wmd,flow,dist_m,w_source,w_sink
 
 class RWMD(WMD):
     """Relaxed Word Mover's Distance (RWMD) with matrix operations in numpy. Inherits the WMD class.
@@ -149,8 +149,10 @@ class RWMD(WMD):
         """Decompose RWMD into word-level flow and distances.
         
         Args:
-          source_mass: A list with the amount of mass of each word in the source. Mass depends on weighting scheme, such as NBOW or Tf-Idf.
-          sink_mass: A list with the amount of mass of each word in the sink. Mass depends on weighting scheme, such as NBOW or Tf-Idf.
+          source_mass: A list with the amount of mass of each word in the source. 
+          Mass depends on weighting scheme, such as NBOW or Tf-Idf.
+          sink_mass: A list with the amount of mass of each word in the sink. 
+          Mass depends on weighting scheme, such as NBOW or Tf-Idf.
           
         Returns:
           flow: A list with the amount of 
