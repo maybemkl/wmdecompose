@@ -212,7 +212,7 @@ class WMDPairs():
     def get_distances(self, 
                       decompose: bool = False, 
                       sum_clusters: bool = False, 
-                      w_sinkc: Dict[str,int] = {}, 
+                      w2c: Dict[str,int] = {}, 
                       c2w: Dict[int, str] = {},
                       thread:bool = False,
                       relax:bool = False) -> None:
@@ -221,7 +221,7 @@ class WMDPairs():
         Args:
           decompose: A boolean to determine whether word-level distances should be decomposed.
           sum_clusters: A boolean to determine whether word-level distances should be summed by cluster.
-          w2: A dictionary mapping words to clusters.
+          w2c: A dictionary mapping words to clusters.
           c2w: A dictionary mapping clusters to words.
           thread: A boolean to determine whether threading should be used.
           relax: A boolean to determine whether RWMD should be returned instead of full WMD.
@@ -239,7 +239,7 @@ class WMDPairs():
         if sum_clusters:
             self.cd_source = {k: 0 for k in c2w.keys()}
             self.cd_sink = {k: 0 for k in c2w.keys()}
-            self.w_sinkc = w_sinkc
+            self.w2c = w2c
         
         if thread:
             futures = []
@@ -335,15 +335,15 @@ class WMDPairs():
             dist = np.sum(dist_m[idx,:])
             self.wd_source[w] += dist
             if self.sum_clusters:
-                self.cd_source[self.w_sinkc[w]] += dist
-                self.source_feat[pair_idx,self.w_sinkc[w]] = dist
+                self.cd_source[self.w2c[w]] += dist
+                self.source_feat[pair_idx,self.w2c[w]] = dist
 
         for idx,w in enumerate(w_sink):
             dist = np.sum(dist_m[:,idx])
             self.wd_sink[w] += dist
             if self.sum_clusters:
-                self.cd_sink[self.w_sinkc[w]] += dist
-                self.sink_feat[pair_idx,self.w_sinkc[w]] = dist
+                self.cd_sink[self.w2c[w]] += dist
+                self.sink_feat[pair_idx,self.w2c[w]] = dist
                 
     def _add_rwmd_dists(self, 
                         w_source:List[str], 
@@ -366,16 +366,16 @@ class WMDPairs():
             dist = np.sum(dist_source[idx])
             self.wd_source[w] += dist
             if self.sum_clusters:
-                self.cd_source[self.w_sinkc[w]] += dist
-                self.source_feat[pair_idx,self.w_sinkc[w]] = dist
+                self.cd_source[self.w2c[w]] += dist
+                self.source_feat[pair_idx,self.w2c[w]] = dist
                 
         for idx,w in enumerate(w_sink):
             sink_idx = len(w_source) + idx
             dist = np.sum(dist_sink[sink_idx])
             self.wd_sink[w] += dist
             if self.sum_clusters:
-                self.cd_sink[self.w_sinkc[w]] += dist
-                self.sink_feat[pair_idx,self.w_sinkc[w]] = dist
+                self.cd_sink[self.w2c[w]] += dist
+                self.sink_feat[pair_idx,self.w2c[w]] = dist
 
     def get_differences(self) -> None:
         """Get differences in accumulated word-by-word distances between two sets of documents.
