@@ -221,7 +221,7 @@ class WMDPairs():
         Args:
           decompose: A boolean to determine whether word-level distances should be decomposed.
           sum_clusters: A boolean to determine whether word-level distances should be summed by cluster.
-          w_sinkc: A dictionary mapping words to clusters.
+          w2: A dictionary mapping words to clusters.
           c2w: A dictionary mapping clusters to words.
           thread: A boolean to determine whether threading should be used.
           relax: A boolean to determine whether RWMD should be returned instead of full WMD.
