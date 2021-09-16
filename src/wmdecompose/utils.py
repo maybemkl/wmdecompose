@@ -6,20 +6,12 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize.toktok import ToktokTokenizer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, DefaultDict, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import re
-
-"""
-TODO
-
-- Write docsstring descriptions
-- Write docstring args and returns
-
-"""
 
 def kmeans_search(E:np.array, K:List[int]) -> Tuple[List[float], List[float]]:
     """Grid search for Kmeans models.
@@ -118,26 +110,22 @@ def get_phrases(sentences:List[List[str]],
     phrased_tri = [t for t in trigram[[b for b in bigram[sentences]]]]
     return phrased_tri
 
-def output_clusters(wd:list, 
-                    cd:list, 
-                    c2w:dict, 
+def output_clusters(wd:List[Tuple[str, float]], 
+                    cd:List[Tuple[int, float]], 
+                    c2w:DefaultDict[list, Dict[int, List[str]]], 
                     n_clusters:int = 10, 
-                    n_words:int = 10, 
-                    average:bool=False,
-                    labels:List[int]=[]) -> pd.DataFrame:
-    """Grid search for Kmeans models.
+                    n_words:int = 10) -> pd.DataFrame:
+    """Get clusters with highest accumulated distance and with within cluster words organized by distance contribution.   
     
     Args:
-      wd: 
-      cd: 
-      c2w:
-      n_clusters:
-      n_words:
-      average:
-      labels:
+      wd: List of tuples with words and their accumulated distance contributions in each tuple.
+      cd: List of tuples with clusters and their accumulated distance contributions in each tuple.
+      c2w: Default dictionary with the cluster number as key and the list of the words in said cluster as value.
+      n_clusters: Integer with the number of clusters.
+      n_words: Integer with the number of words per cluster.
     
     Return:
-      keywords_df:
+      keywords_df: Pandas dataframe with clusters with distances as column headers and words with distances as row values.
     
     """
 
@@ -155,27 +143,16 @@ def output_clusters(wd:list,
     keywords_df.columns = top_clusters
     return keywords_df
 
-def read_1w_corpus(name:str, sep:str="\t"):
-    """Helper function to read the Google News corpus.    
-    
-    Args:
-      name: String with the filename of the corpus.
-      sep:
-
-    """
-    for line in open(name):
-        yield line.split(sep)
-
 def remove_oov(text:str, tokenizer:Callable[[List[str]], List[str]], oov:List[str]) -> str:
-    """Removing the oov words.
+    """Function for removing out-of-vocabulary (oov) words.
         
     Args:
-      text:
-      tokenizer:
-      oov:
+      text: String to be analyzed for oov words.
+      tokenizer: Any tokenizer that returns input sentence as a list of strings.
+      oov: List of oov words.
     
     Return:
-      filtered_text:
+      filtered_text: String with oov words removed.
     
     """
     tokens = tokenizer.tokenize(text)
@@ -186,7 +163,7 @@ def remove_oov(text:str, tokenizer:Callable[[List[str]], List[str]], oov:List[st
     return filtered_text
 
 def take(n:int, iterable:iter) -> list:
-    """Return first n items of the iterable as a list
+    """Return first n items of the iterable as a list.
         
     Args:
       n: An integer of the number of items to keep from iterable.
@@ -197,28 +174,28 @@ def take(n:int, iterable:iter) -> list:
     """
     return list(islice(iterable, n))
 
-def tokenize(text:str, tokenizer:Callable[[List[str]], List[str]]) -> List[str]:
-    """Tokenizer.
+def tokenize(text:str, tokenizer:Callable[[str], List[str]]) -> List[str]:
+    """Callable to use with the Sklearn TfIdfVectorizer.
  
     Args:
-      text:
-      tokenizer:
+      text: String to tokenize.
+      tokenizer: Any callable that takes a string as input and returns a list of strings.
     
     Return:
-      tokens:
+      tokens: List of strings.
       
     """
     tokens = tokenizer.tokenize(text)
     return tokens
 
 def tfidf_tokenize(text:str) -> List[str]:
-    """Tokenizer function for the scikit-learn TfIdfVectorizer.
+    """Callable to use with the Sklearn TfIdfVectorizer with the tokenizer predetermined as the nltk ToktokTokenizer.
         
     Args:
-      text:
+      text: String to tokenize.
     
     Return:
-      tokens:
+      tokens: List of strings.
     
     """
     tokenizer=ToktokTokenizer()
@@ -229,13 +206,13 @@ def tfidf_tokenize(text:str) -> List[str]:
 # Partly self-authored, partly from https://www.kaggle.com/lakshmi25npathi/sentiment-analysis-of-imdb-movie-reviews
 
 def strip_html(text:str) -> str:
-    """Removing the html strips
+    """Removing the html strips.
         
     Args:
-      text:
+      text: String to have HTML removed.
     
     Return:
-      text:
+      text: String with HTML removed.
     
     """
     soup = BeautifulSoup(text, "html.parser")
@@ -245,10 +222,10 @@ def remove_between_square_brackets(text:str) -> str:
     """Removing the square <brackets
         
     Args:
-      text:
+      text: String to have square brackets removed.
     
     Return:
-      text:
+      text: String with square brackets removed.
     """
     
     return re.sub('\[[^]]*\]', '', text)
@@ -257,10 +234,10 @@ def denoise_text(text:str) -> str:
     """Removing the noisy text
         
     Args:
-      text:
+      text: String to denoise for HTML.
     
     Return:
-      text:
+      text: String with HTML denoised.
       
     """
     
@@ -269,15 +246,14 @@ def denoise_text(text:str) -> str:
     text = remove_between_square_brackets(text)
     return text
 
-def remove_special_characters(text:str, remove_digits:bool=True) -> str:
+def remove_special_characters(text:str) -> str:
     """Define function for removing special characters
         
     Args:
-      text:
-      remove_digits:
+      text: String to filter for special characters.
     
     Return:
-      text:
+      text: String with special characters removed.
     
     """
 
@@ -289,10 +265,10 @@ def simple_lemmatizer(text:str) -> str:
     """Lemmatizing the text.
         
     Args:
-      text:
+      text: String to lemmatize.
     
     Return:
-      text:
+      text: String that has been lemmatized.
     
     """
     
@@ -302,18 +278,18 @@ def simple_lemmatizer(text:str) -> str:
 
 def remove_stopwords(text:str, 
                      stopword_list:List[str], 
-                     tokenizer::Callable[[List[str]], List[str]], 
+                     tokenizer::Callable[[str], List[str]], 
                      is_lower_case:bool=False) -> str:
     """Removing the stopwords.
             
     Args:
-      text:
-      stopword_list:
-      tokenizer:
-      is_lower_case:
+      text: String to filter for stopwords.
+      stopword_list: List of strings with stopwords.
+      tokenizer: Any callable that takes a string as input and returns a list of strings.
+      is_lower_case: Boolean indicating whether input is alread lower case.
     
     Return:
-      filtered_text:
+      filtered_text: String with stopwords removed.
     
     """
     
