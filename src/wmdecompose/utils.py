@@ -6,7 +6,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize.toktok import ToktokTokenizer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-from typing import Callable, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,27 +18,47 @@ TODO
 
 - Write docsstring descriptions
 - Write docstring args and returns
-- Finnish types
 
 """
 
-def kmeans_search(X:np.array, K:list) -> Tuple[List[float], List[float]]:
-    """Search through """
+def kmeans_search(E:np.array, K:List[int]) -> Tuple[List[float], List[float]]:
+    """Grid search for Kmeans models.
+    
+    Args:
+      E: An array with an embedding matrix of float values.
+      K: A list of integers for all the K values that should be searched.
+    
+    Return:
+      sum_of_squared_distances: A list of float values with the 'intertia_' variable from Kmeans. 
+      silhouette: A list of float values with the silhouette scores for the Kmeans models at each K.
+    
+    """
+    
     sum_of_squared_distances = []
     silhouette = []
     for k in K:
         km = KMeans(n_clusters=k,max_iter=300)
-        km = km.fit(X)
+        km = km.fit(E)
         sum_of_squared_distances.append(km.inertia_)
-        cluster_labels = km.fit_predict(X)
-        silhouette_avg = silhouette_score(X, cluster_labels)
+        cluster_labels = km.fit_predict(E)
+        silhouette_avg = silhouette_score(E, cluster_labels)
         silhouette.append(silhouette_avg)
         if k % 5 == 0:
             print("For n_clusters =", k,
               "The average silhouette_score is :", silhouette_avg)
     return sum_of_squared_distances, silhouette
 
-def plot_kmeans(K:list, data, metric:str, fname:str = "") -> None:
+def plot_kmeans(K:List[int], data:List[float], metric:str, fname:str = "") -> None:
+    """Plot silhouette or elbow scores for Kmeans model.
+    
+    Args:
+      K: A list of integers for all the K values that should be searched.
+      data: A list with a float (or int) number for each Kmeans model.
+      metric: A string with the metric to plot. Must be be 'elbow' or 'silhouette'.
+      fname: String with filename for saving figure. Optional.  
+    
+    """
+    
     plt.plot(K, data, 'bx-')
     plt.xlabel('k')
     if metric == "elbow":
@@ -47,17 +67,34 @@ def plot_kmeans(K:list, data, metric:str, fname:str = "") -> None:
     if metric == "silhouette":
         plt.ylabel('Silhouette score')
         plt.title('Silhouette Score for Optimal k')
+    elif metric not in ["elbow", "silhouette"]:
+        print("Please define 'metric' as either 'elbow' or 'silhouette'.")
     if len(fname) > 0:
         plt.savefig(fname)
     else:
         plt.show()
 
-def get_phrases(sentences:list, 
+def get_phrases(sentences:List[List[str]], 
                 min_count:int=5, 
                 threshold:int=100, 
                 save:bool=False,
                 load:bool=False,
                 PATH:str="embeddings/") -> List[List[str]]:
+    """Function for generating, saving and loading Phrases using Gensim.
+    For details, see https://radimrehurek.com/gensim/models/phrases.html
+    
+    Args:
+      sentences: A list of strings.
+      min_count: An integer for the 'min_count' argument in the Gensim Phraser.
+      threshold:  An integer for the 'threshold' argument in the Gensim Phraser.
+      save: Boolean indicating whether phrases should be saved when generating new phrases.
+      load: Boolean indicating that whether phrases should be loaded, instead of saved.
+      PATH: String for path to which save or from which to load phrases.
+    
+    Return:
+      phrased_tri: List of lists with the phrased versions of the input sentences.
+    
+    """
     
     if load:
         bigram=Phrases.load(f"{PATH}bigram_phrases.pkl")
@@ -81,18 +118,31 @@ def get_phrases(sentences:list,
     phrased_tri = [t for t in trigram[[b for b in bigram[sentences]]]]
     return phrased_tri
 
-def output_clusters(wc:list, 
-                    cc:list, 
+def output_clusters(wd:list, 
+                    cd:list, 
                     c2w:dict, 
                     n_clusters:int = 10, 
                     n_words:int = 10, 
                     average:bool=False,
-                    labels:list=[]) -> pd.DataFrame:
-    #if average:
-    #    lbl_counts = Counter(list(labels))
-    #    cc = [lbl_counts]
-    top_clusters = [k for k, v in sorted(cc, key=lambda item: item[1], reverse=True)[:n_clusters]]
-    word_rankings = {k: v for k, v in sorted(wc, key=lambda item: item[1], reverse=True)}
+                    labels:List[int]=[]) -> pd.DataFrame:
+    """Grid search for Kmeans models.
+    
+    Args:
+      wd: 
+      cd: 
+      c2w:
+      n_clusters:
+      n_words:
+      average:
+      labels:
+    
+    Return:
+      keywords_df:
+    
+    """
+
+    top_clusters = [k for k, v in sorted(cd, key=lambda item: item[1], reverse=True)[:n_clusters]]
+    word_rankings = {k: v for k, v in sorted(wd, key=lambda item: item[1], reverse=True)}
     keywords = []
     for c in top_clusters:
         cluster_words = {w: word_rankings[w] for w in c2w[c] 
@@ -106,12 +156,28 @@ def output_clusters(wc:list,
     return keywords_df
 
 def read_1w_corpus(name:str, sep:str="\t"):
-    """Helper function to read the Google News corpus."""
+    """Helper function to read the Google News corpus.    
+    
+    Args:
+      name: String with the filename of the corpus.
+      sep:
+
+    """
     for line in open(name):
         yield line.split(sep)
 
-def remove_oov(text:str, tokenizer:Callable[[List[str]], List[str]], oov:list) -> str:
-    """Removing the oov words."""
+def remove_oov(text:str, tokenizer:Callable[[List[str]], List[str]], oov:List[str]) -> str:
+    """Removing the oov words.
+        
+    Args:
+      text:
+      tokenizer:
+      oov:
+    
+    Return:
+      filtered_text:
+    
+    """
     tokens = tokenizer.tokenize(text)
     tokens = [token.strip() for token in tokens]
     filtered_tokens = [token for token in tokens if token not in oov]
@@ -120,16 +186,41 @@ def remove_oov(text:str, tokenizer:Callable[[List[str]], List[str]], oov:list) -
     return filtered_text
 
 def take(n:int, iterable:iter) -> list:
-    "Return first n items of the iterable as a list"
+    """Return first n items of the iterable as a list
+        
+    Args:
+      n: An integer of the number of items to keep from iterable.
+      iterable: Any iterable.
+    
+    Return:
+      list: List of items contained in input iterable.
+    """
     return list(islice(iterable, n))
 
-def tokenize(text:str, tokenizer:Callable[[List[str]], List[str]]) -> list:
-    """Tokenizer."""
+def tokenize(text:str, tokenizer:Callable[[List[str]], List[str]]) -> List[str]:
+    """Tokenizer.
+ 
+    Args:
+      text:
+      tokenizer:
+    
+    Return:
+      tokens:
+      
+    """
     tokens = tokenizer.tokenize(text)
     return tokens
 
-def tfidf_tokenize(text:str) -> list:
-    """Tokenizer function for the scikit-learn TfIdfVectorizer."""
+def tfidf_tokenize(text:str) -> List[str]:
+    """Tokenizer function for the scikit-learn TfIdfVectorizer.
+        
+    Args:
+      text:
+    
+    Return:
+      tokens:
+    
+    """
     tokenizer=ToktokTokenizer()
     tokens = tokenizer.tokenize(text)
     return tokens
@@ -138,17 +229,40 @@ def tfidf_tokenize(text:str) -> list:
 # Partly self-authored, partly from https://www.kaggle.com/lakshmi25npathi/sentiment-analysis-of-imdb-movie-reviews
 
 def strip_html(text:str) -> str:
-    """Removing the html strips"""
+    """Removing the html strips
+        
+    Args:
+      text:
+    
+    Return:
+      text:
+    
+    """
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text()
 
 def remove_between_square_brackets(text:str) -> str:
-    """Removing the square <brackets"""
+    """Removing the square <brackets
+        
+    Args:
+      text:
+    
+    Return:
+      text:
+    """
     
     return re.sub('\[[^]]*\]', '', text)
 
 def denoise_text(text:str) -> str:
-    """Removing the noisy text"""
+    """Removing the noisy text
+        
+    Args:
+      text:
+    
+    Return:
+      text:
+      
+    """
     
     text = re.sub('<br / ><br / >', ' ', text)
     text = strip_html(text)
@@ -156,24 +270,52 @@ def denoise_text(text:str) -> str:
     return text
 
 def remove_special_characters(text:str, remove_digits:bool=True) -> str:
-    """Define function for removing special characters"""
+    """Define function for removing special characters
+        
+    Args:
+      text:
+      remove_digits:
+    
+    Return:
+      text:
+    
+    """
 
     pattern=r'[^a-zA-z\s]'
     text=re.sub(pattern,'',text)
     return text
 
 def simple_lemmatizer(text:str) -> str:
-    """Lemmatizing the text."""
+    """Lemmatizing the text.
+        
+    Args:
+      text:
+    
+    Return:
+      text:
+    
+    """
     
     lemmatizer=WordNetLemmatizer() 
     text= ' '.join([lemmatizer.lemmatize(word) for word in text.split()])
     return text
 
 def remove_stopwords(text:str, 
-                     stopword_list:list, 
+                     stopword_list:List[str], 
                      tokenizer::Callable[[List[str]], List[str]], 
                      is_lower_case:bool=False) -> str:
-    """Removing the stopwords."""
+    """Removing the stopwords.
+            
+    Args:
+      text:
+      stopword_list:
+      tokenizer:
+      is_lower_case:
+    
+    Return:
+      filtered_text:
+    
+    """
     
     tokens = tokenizer.tokenize(text)
     tokens = [token.strip() for token in tokens]
