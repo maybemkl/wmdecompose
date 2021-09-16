@@ -4,7 +4,7 @@ import pandas as pd
 import pickle
 import time
 
-from flow_wmd.utils import *
+from wmdecompose.utils import *
 from gensim.models import Word2Vec 
 from gensim.models import KeyedVectors
 from gensim.models.callbacks import CallbackAny2Vec

@@ -1,4 +1,4 @@
-from flow_wmd.utils import *
+from wmdecompose.utils import *
 from nltk.corpus import stopwords
 from nltk.tokenize import ToktokTokenizer
 

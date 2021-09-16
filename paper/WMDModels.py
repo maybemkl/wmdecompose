@@ -1,8 +1,8 @@
 from collections import defaultdict
-from flow_wmd.documents import Document
-from flow_wmd.gale_shapeley import Matcher
-from flow_wmd.models import LC_RWMD, WMD, WMDManyToMany, WMDPairs
-from flow_wmd.utils import *
+from wmdecompose.documents import Document
+from wmdecompose.gale_shapeley import Matcher
+from wmdecompose.models import LC_RWMD, WMD, WMDManyToMany, WMDPairs
+from wmdecompose.utils import *
 
 from gensim.models import KeyedVectors
 from nltk.corpus import stopwords
