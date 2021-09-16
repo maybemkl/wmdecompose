@@ -6,14 +6,24 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize.toktok import ToktokTokenizer
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import re
 
+"""
+TODO
+
+- Write docsstring descriptions
+- Write docstring args and returns
+- Finnish types
+
+"""
+
 def kmeans_search(X:np.array, K:list) -> Tuple[List[float], List[float]]:
+    """Search through """
     sum_of_squared_distances = []
     silhouette = []
     for k in K:
@@ -47,7 +57,7 @@ def get_phrases(sentences:list,
                 threshold:int=100, 
                 save:bool=False,
                 load:bool=False,
-                PATH:str="embeddings/") -> list:
+                PATH:str="embeddings/") -> List[List[str]]:
     
     if load:
         bigram=Phrases.load(f"{PATH}bigram_phrases.pkl")
@@ -100,7 +110,7 @@ def read_1w_corpus(name:str, sep:str="\t"):
     for line in open(name):
         yield line.split(sep)
 
-def remove_oov(text:str, tokenizer, oov:list)->str:
+def remove_oov(text:str, tokenizer:Callable[[List[str]], List[str]], oov:list) -> str:
     """Removing the oov words."""
     tokens = tokenizer.tokenize(text)
     tokens = [token.strip() for token in tokens]
@@ -113,7 +123,7 @@ def take(n:int, iterable:iter) -> list:
     "Return first n items of the iterable as a list"
     return list(islice(iterable, n))
 
-def tokenize(text:str, tokenizer) -> list:
+def tokenize(text:str, tokenizer:Callable[[List[str]], List[str]]) -> list:
     """Tokenizer."""
     tokens = tokenizer.tokenize(text)
     return tokens
@@ -127,17 +137,17 @@ def tfidf_tokenize(text:str) -> list:
 # Custom preprocessing functions
 # Partly self-authored, partly from https://www.kaggle.com/lakshmi25npathi/sentiment-analysis-of-imdb-movie-reviews
 
-def strip_html(text:str)->str:
+def strip_html(text:str) -> str:
     """Removing the html strips"""
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text()
 
-def remove_between_square_brackets(text):
+def remove_between_square_brackets(text:str) -> str:
     """Removing the square <brackets"""
     
     return re.sub('\[[^]]*\]', '', text)
 
-def denoise_text(text:str)->str:
+def denoise_text(text:str) -> str:
     """Removing the noisy text"""
     
     text = re.sub('<br / ><br / >', ' ', text)
@@ -152,17 +162,18 @@ def remove_special_characters(text:str, remove_digits:bool=True) -> str:
     text=re.sub(pattern,'',text)
     return text
 
-def simple_lemmatizer(text:str)->str:
+def simple_lemmatizer(text:str) -> str:
     """Lemmatizing the text."""
     
     lemmatizer=WordNetLemmatizer() 
     text= ' '.join([lemmatizer.lemmatize(word) for word in text.split()])
     return text
 
-def remove_stopwords(text:str, stopword_list:list, tokenizer:ToktokTokenizer, is_lower_case:bool=False) -> str:
-    """
-    Removing the stopwords.
-    """
+def remove_stopwords(text:str, 
+                     stopword_list:list, 
+                     tokenizer::Callable[[List[str]], List[str]], 
+                     is_lower_case:bool=False) -> str:
+    """Removing the stopwords."""
     
     tokens = tokenizer.tokenize(text)
     tokens = [token.strip() for token in tokens]
