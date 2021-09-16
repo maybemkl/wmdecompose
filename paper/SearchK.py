@@ -1,4 +1,4 @@
-from flow_wmd.utils import *
+from wmdecompose.utils import *
 
 from gensim.models import KeyedVectors
 from nltk.corpus import stopwords
