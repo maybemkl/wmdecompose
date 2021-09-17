@@ -1,6 +1,8 @@
 import copy
 import numpy as np
 
+from typing import Dict
+
 class Matcher():
     """
     Class for finding the optimal Gale-Shapeley matches from a distance matrix where rows are "guys" and columns are "gals", 
@@ -32,7 +34,7 @@ class Matcher():
         self.guys = sorted(guy_pref.keys())
         self.gals = sorted(gal_pref.keys())
 
-    def matchmaker(self) -> dict:
+    def matchmaker(self) -> Dict[int,int]:
         """
         Use the Gale Shapley algorithm to find a stable set of engagements.
         
