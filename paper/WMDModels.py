@@ -183,7 +183,7 @@ if pairing == 'random':
     neg_idx = list(range(0,len(neg_docs)))
     shuffle(pos_idx)
     shuffle(neg_idx)
-    pairs = dict(zip(pos_idx, neg_idx))
+    pairs = zip(pos_idx, neg_idx)
 if pairing == 'full':
     print("Running full pairing.")
     pos_idx = list(range(0,len(pos_docs)))
@@ -260,7 +260,6 @@ source_dists = source_dists[c1.columns]
 source_dists['city'] = sample[:500].city
 source_dists_long = pd.melt(source_dists, id_vars=['city']).rename(columns={"variable":"cluster"})
 source_dists_long = source_dists_long[source_dists_long.value != 0]
-print(source_dists_long)
 
 g = sns.catplot(x="city", 
                 y="value", 
