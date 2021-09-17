@@ -108,7 +108,7 @@ print(f"There are {len(oov_)} oov words left.")
 
 features = vectorizer.get_feature_names()
 word2idx = {word: idx for idx, word in enumerate(vectorizer.get_feature_names())}
-idsinkword = {idx: word for idx, word in enumerate(vectorizer.get_feature_names())}
+idx2word = {idx: word for idx, word in enumerate(vectorizer.get_feature_names())}
 E = model[features]
 
 pos_docs, neg_docs = [], []
@@ -175,8 +175,8 @@ if pairing == 'gs':
     print("Running Gale-Shapeley pairing.")
     matcher = Matcher(lc_rwmd.D)
     engaged = matcher.matchmaker()
-    matcher.check()
-    pairs = engaged
+    print(f"Pairing is stable: {matcher.check()}")
+    pairs = [(k, v) for k, v in engaged.items()]
 if pairing == 'random':
     print("Running random pairing.")
     pos_idx = list(range(0,len(pos_docs)))
@@ -186,21 +186,20 @@ if pairing == 'random':
     pairs = dict(zip(pos_idx, neg_idx))
 if pairing == 'full':
     print("Running full pairing.")
-    idx = list(range(0,len(pos_docs)*len(neg_docs)))
-    pairs = dict([(i,j) for i, j in enumerate(idx)])
-    pos_docs = [d for d in pos_docs for _ in list(range(0,len(neg_docs)))]
-    neg_docs = [d for d in neg_docs for _ in list(range(0,len(pos_docs)))]
+    pos_idx = list(range(0,len(pos_docs)))
+    neg_idx = list(range(0,len(neg_docs)))
+    pairs = [(i,j) for i in pos_idx for j in neg_idx]
 
 print(f"Prepared {len(pairs)} pairs.")
 print("Initializing WMD.")
-wmd_pairs_flow = WMDPairs(pos_docs,neg_docs,pairs,E,idsinkword)
+wmd_pairs_flow = WMDPairs(pos_docs,neg_docs,pairs,E,idx2word)
 
 print("Getting WMD distances.")
 wmd_pairs_flow.get_distances(decompose = True, 
                              sum_clusters = True, 
                              w2c = word2cluster, 
                              c2w = cluster2words,
-                             thread = True,
+                             thread = False,
                              relax = True)
 
 print("Getting differences in flow.")
@@ -255,12 +254,13 @@ with open(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_
 
 print("Preparing and saving boxplots.")
 source_dists = pd.DataFrame(wmd_pairs_flow.source_feat)
-source_dists.index = list(pairs.keys())
+source_dists.index = [p[0] for p in pairs]
 source_dists = source_dists.sort_index()
 source_dists = source_dists[c1.columns]
 source_dists['city'] = sample[:500].city
 source_dists_long = pd.melt(source_dists, id_vars=['city']).rename(columns={"variable":"cluster"})
 source_dists_long = source_dists_long[source_dists_long.value != 0]
+print(source_dists_long)
 
 g = sns.catplot(x="city", 
                 y="value", 
@@ -283,7 +283,7 @@ for ax in g.axes.flatten():
 g.savefig(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_boxplots.png', dpi=400)
 
 sink_dists = pd.DataFrame(wmd_pairs_flow.source_feat)
-sink_dists.index = list(pairs.values())
+sink_dists.index = [p[0] for p in pairs]
 sink_dists = sink_dists.sort_index()
 sink_dists = sink_dists[c2.columns]
 sink_dists['city'] = sample[500:1000].city.tolist()
