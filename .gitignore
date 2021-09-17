@@ -1,6 +1,8 @@
 .DS_Store
 .ipynb_checkpoints
+**/*.ipynb_checkpoints/
+flow_wmd/.ipynb_checkpoints
 __pycache__
 GoogleNews-vectors*
-Hennrik.ipynb
-aclImdb
+yelp_dataset
+venv-fwmd
