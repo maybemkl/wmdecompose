@@ -1,9 +1,10 @@
-from collections import defaultdict
 from wmdecompose.documents import Document
 from wmdecompose.gale_shapeley import Matcher
-from wmdecompose.models import LC_RWMD, WMD, WMDManyToMany, WMDPairs
+from wmdecompose.models import LC_RWMD, WMD, WMDPairs
 from wmdecompose.utils import *
 
+from collections import defaultdict
+from datetime import datetime
 from gensim.models import KeyedVectors
 from nltk.corpus import stopwords
 from nltk.tokenize import ToktokTokenizer
@@ -32,6 +33,9 @@ random.seed(42)
 vecs = sys.argv[1]
 pairing = sys.argv[2]
 reduced = sys.argv[3]
+timestamp = f'wmdecomp_{datetime.now().strftime("%d%m%Y_%H%M%S")}'
+
+os.mkdir(f'experiments/{timestamp}')
 
 print(f"Beginning WMD pipeline with {vecs} vectors and {pairing} pairing.")
 print(f"Vector reduction: {reduced}")
@@ -103,7 +107,7 @@ print(f"There are {len(oov_)} oov words left.")
 
 features = vectorizer.get_feature_names()
 word2idx = {word: idx for idx, word in enumerate(vectorizer.get_feature_names())}
-idx2word = {idx: word for idx, word in enumerate(vectorizer.get_feature_names())}
+idsinkword = {idx: word for idx, word in enumerate(vectorizer.get_feature_names())}
 E = model[features]
 
 pos_docs, neg_docs = [], []
@@ -124,7 +128,7 @@ if vecs == 'tsne':
     verbose = 1
     E_tsne = TSNE(n_components=n_components, method=method, verbose=verbose).fit_transform(E)
     plt.scatter(E_tsne[:, 0], E_tsne[:, 1], s=1);
-    plt.savefig('img/tsne_yelp.png')
+    plt.savefig(f'experiments/{timestamp}/tsne_yelp.png')
     if reduced == True:
         E = E_tsne
     
@@ -153,7 +157,7 @@ if vecs == 'umap':
         verbose=verbose
     ).fit_transform(E)
     plt.scatter(E_umap[:, 0], E_umap[:, 1], s=1);
-    plt.savefig('img/umap_yelp.png')
+    plt.savefig(f'experiments/{timestamp}/umap_yelp.png')
     if reduced == True:
         E = E_umap
 
@@ -188,78 +192,79 @@ if pairing == 'full':
 
 print(f"Prepared {len(pairs)} pairs.")
 print("Initializing WMD.")
-wmd_pairs_flow = WMDPairs(pos_docs,neg_docs,pairs,E,idx2word)
+wmd_pairs_flow = WMDPairs(pos_docs,neg_docs,pairs,E,idsinkword)
 
 print("Getting WMD distances.")
-wmd_pairs_flow.get_distances(return_flow = True, 
+wmd_pairs_flow.get_distances(decompose = True, 
                              sum_clusters = True, 
                              w2c = word2cluster, 
                              c2w = cluster2words,
-                             thread = True)
+                             thread = True,
+                             relax = True)
 
 print("Getting differences in flow.")
 wmd_pairs_flow.get_differences()
 
 print("Saving model.")
-with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_WMDmodel.pkl', 'wb') as handle:
+with open(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_WMDmodel.pkl', 'wb') as handle:
     pickle.dump(wmd_pairs_flow, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 top_n = 100
 print(f"Getting top {top_n} words both ways.")
-x1_to_x2 = {k: v for k, v in sorted(wmd_pairs_flow.wc_X1_diff.items(), key=lambda item: item[1], reverse=True)[:top_n]}
-top_words_x1_df = pd.DataFrame.from_dict(x1_to_x2, orient='index', columns = ["cost"])
-top_words_x1_df['word'] = top_words_x1_df.index
+source_to_sink = {k: v for k, v in sorted(wmd_pairs_flow.wd_source_diff.items(), key=lambda item: item[1], reverse=True)[:top_n]}
+top_words_source_df = pd.DataFrame.from_dict(source_to_sink, orient='index', columns = ["distance"])
+top_words_source_df['word'] = top_words_source_df.index
 
-x2_to_x1 = {k: v for k, v in sorted(wmd_pairs_flow.wc_X2_diff.items(), key=lambda item: item[1], reverse=True)[:top_n]}
-top_words_x2_df = pd.DataFrame.from_dict(x2_to_x1, orient='index', columns = ["cost"])
-top_words_x2_df['word'] = top_words_x2_df.index
+sink_to_source = {k: v for k, v in sorted(wmd_pairs_flow.wd_sink_diff.items(), key=lambda item: item[1], reverse=True)[:top_n]}
+top_words_sink_df = pd.DataFrame.from_dict(sink_to_source, orient='index', columns = ["distance"])
+top_words_sink_df['word'] = top_words_sink_df.index
 
 print(f"Saving top {top_n} words both ways.")
-top_words_x1_df.to_csv(f"experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_x1_to_x2.csv", index=False)
-with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_diff.pkl', 'wb') as handle:
-    pickle.dump(x1_to_x2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+top_words_source_df.to_csv(f"experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_source_to_sink.csv", index=False)
+with open(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_diff.pkl', 'wb') as handle:
+    pickle.dump(source_to_sink, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-top_words_x2_df.to_csv(f"experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_x2_to_x1.csv", index=False)
-with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_diff.pkl', 'wb') as handle:
-    pickle.dump(x2_to_x1, handle, protocol=pickle.HIGHEST_PROTOCOL)
+top_words_sink_df.to_csv(f"experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_sink_to_source.csv", index=False)
+with open(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_diff.pkl', 'wb') as handle:
+    pickle.dump(sink_to_source, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
 n_clusters = 100
 n_words = 100
 
 print(f"Getting {n_clusters} with {n_words} each.")
-c1 = output_clusters(wc=wmd_pairs_flow.wc_X1_diff.items(), 
-                     cc=wmd_pairs_flow.cc_X1.items(), 
+c1 = output_clusters(wd=wmd_pairs_flow.wd_source_diff.items(), 
+                     cd=wmd_pairs_flow.cd_source.items(), 
                      c2w=cluster2words, 
                      n_clusters=n_clusters, 
                      n_words=n_words)
-c2 = output_clusters(wc=wmd_pairs_flow.wc_X2_diff.items(), 
-                     cc=wmd_pairs_flow.cc_X2.items(), 
+c2 = output_clusters(wd=wmd_pairs_flow.wd_sink_diff.items(), 
+                     cd=wmd_pairs_flow.cd_sink.items(), 
                      c2w=cluster2words, 
                      n_clusters=n_clusters, 
                      n_words=n_words)
 
 print("Saving clusters.")
-c1.to_csv(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_clusters.csv', index=False)
-with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_clusters.pkl', 'wb') as handle:
+c1.to_csv(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_clusters.csv', index=False)
+with open(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_clusters.pkl', 'wb') as handle:
     pickle.dump(c1, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-c2.to_csv(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_clusters.csv', index=False)
-with open(f'experiments/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_clusters.pkl', 'wb') as handle:
+c2.to_csv(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_clusters.csv', index=False)
+with open(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_clusters.pkl', 'wb') as handle:
     pickle.dump(c2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 print("Preparing and saving boxplots.")
-x1_costs = pd.DataFrame(wmd_pairs_flow.X1_feat)
-x1_costs.index = list(pairs.keys())
-x1_costs = x1_costs.sort_index()
-x1_costs = x1_costs[c1.columns]
-x1_costs['city'] = sample[:500].city
-x1_costs_long = pd.melt(x1_costs, id_vars=['city']).rename(columns={"variable":"cluster"})
-x1_costs_long = x1_costs_long[x1_costs_long.value != 0]
+source_dists = pd.DataFrame(wmd_pairs_flow.source_feat)
+source_dists.index = list(pairs.keys())
+source_dists = source_dists.sort_index()
+source_dists = source_dists[c1.columns]
+source_dists['city'] = sample[:500].city
+source_dists_long = pd.melt(source_dists, id_vars=['city']).rename(columns={"variable":"cluster"})
+source_dists_long = source_dists_long[source_dists_long.value != 0]
 
 g = sns.catplot(x="city", 
                 y="value", 
                 col="cluster", 
-                data=x1_costs_long, 
+                data=source_dists_long, 
                 kind="box",
                 height=5, 
                 aspect=.7,
@@ -270,25 +275,25 @@ g.map_dataframe(sns.stripplot,
                 y="value", 
                 palette=["#404040"], 
                 alpha=0.2, dodge=True)
-g.set_axis_labels("City", "Cost")
+g.set_axis_labels("City", "Distance")
 for ax in g.axes.flatten():
     ax.tick_params(labelbottom=True)
 
-g.savefig(f'img/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_boxplots.png', dpi=400)
+g.savefig(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_pos_to_neg_boxplots.png', dpi=400)
 
-x2_costs = pd.DataFrame(wmd_pairs_flow.X1_feat)
-x2_costs.index = list(pairs.values())
-x2_costs = x2_costs.sort_index()
-x2_costs = x2_costs[c2.columns]
-x2_costs['city'] = sample[500:1000].city.tolist()
+sink_dists = pd.DataFrame(wmd_pairs_flow.source_feat)
+sink_dists.index = list(pairs.values())
+sink_dists = sink_dists.sort_index()
+sink_dists = sink_dists[c2.columns]
+sink_dists['city'] = sample[500:1000].city.tolist()
 
-x2_costs_long = pd.melt(x2_costs, id_vars=['city']).rename(columns={"variable":"cluster"})
-x2_costs_long = x2_costs_long[x2_costs_long.value != 0]
+sink_dists_long = pd.melt(sink_dists, id_vars=['city']).rename(columns={"variable":"cluster"})
+sink_dists_long = sink_dists_long[sink_dists_long.value != 0]
 
 g = sns.catplot(x="city", 
                 y="value", 
                 col="cluster", 
-                data=x2_costs_long, 
+                data=sink_dists_long, 
                 kind="box",
                 height=5, 
                 aspect=.7,
@@ -299,8 +304,8 @@ g.map_dataframe(sns.stripplot,
                 y="value", 
                 palette=["#404040"], 
                 alpha=0.2, dodge=True)
-g.set_axis_labels("City", "Cost")
+g.set_axis_labels("City", "Distance")
 for ax in g.axes.flatten():
     ax.tick_params(labelbottom=True)
 
-g.savefig(f'img/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_boxplots.png', dpi=400)
+g.savefig(f'experiments/{timestamp}/{vecs}_{pairing}_reduced-{reduced}_yelp_neg_to_pos_boxplots.png', dpi=400)

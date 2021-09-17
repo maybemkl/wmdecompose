@@ -1,5 +1,6 @@
 from wmdecompose.utils import *
 
+from datetime import datetime
 from gensim.models import KeyedVectors
 from nltk.corpus import stopwords
 from nltk.tokenize import ToktokTokenizer
@@ -12,6 +13,7 @@ from sklearn import cluster
 
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
 import umap
 
@@ -21,6 +23,9 @@ PATH = "data/"
 print("Loading and preparing data.")
 sample = pd.read_pickle(f"{PATH}yelp_sample.pkl")
 tokenizer = ToktokTokenizer()
+timestamp = f'searchk_{datetime.now().strftime("%d%m%Y_%H%M%S")}'
+
+os.mkdir(f'img/{timestamp}')
 
 pos = sample[sample.sentiment == "positive"].reset_index(drop=True)
 neg = sample[sample.sentiment == "negative"].reset_index(drop=True)
@@ -93,7 +98,7 @@ if search_w2v:
     print("Searching K for full W2V vectors.")
     w2v_ssd, w2v_silhouette = kmeans_search(E, K)
     plot_kmeans(K,w2v_ssd,"elbow","img/w2v_ssd")
-    plot_kmeans(K,w2v_silhouette,"silhouette","img/w2v_silhouette",)
+    plot_kmeans(K,w2v_silhouette,"silhouette",f"img/{timestamp}/w2v_silhouette",)
 
 ## T-SNE
 search_tsne = False
@@ -104,11 +109,11 @@ if search_tsne:
     verbose = 1
     E_tsne = TSNE(n_components=n_components, method=method, verbose=verbose).fit_transform(E)
     plt.scatter(E_tsne[:, 0], E_tsne[:, 1], s=1);
-    plt.savefig('img/tsne_yelp.png')
+    plt.savefig(f'img/{timestamp}/tsne_yelp.png')
     print("Searching K for T-SNE vectors.")
     tsne_ssd, tsne_silhouette = kmeans_search(E_tsne, K)
     plot_kmeans(K,tsne_ssd,"elbow","img/tsne_ssd")
-    plot_kmeans(K,tsne_silhouette,"silhouette","img/tsne_silhouette")
+    plot_kmeans(K,tsne_silhouette,"silhouette",f"img/{timestamp}/tsne_silhouette")
     
 ## PCA
 search_pca = True
@@ -122,11 +127,11 @@ if search_pca:
     print(np.sum(pca_fit.explained_variance_ratio_))
     E_pca = pca_fit.transform(E)
     plt.scatter(E_pca[:, 0], E_pca[:, 1], s=1);
-    plt.savefig('img/pca_yelp.png')
+    plt.savefig(f'img/{timestamp}/pca_yelp.png')
     print("Searching K for PCA vectors.")
     pca_ssd, pca_silhouette = kmeans_search(E_pca, K)
-    plot_kmeans(K,pca_ssd,"elbow","img/pca_ssd")
-    plot_kmeans(K,pca_silhouette,"silhouette","img/pca_silhouette")
+    plot_kmeans(K,pca_ssd,"elbow",f"img/{timestamp}/pca_ssd")
+    plot_kmeans(K,pca_silhouette,"silhouette",f"img/{timestamp}/pca_silhouette")
     
 ## UMAP
 search_umap = True
@@ -155,10 +160,10 @@ if search_umap:
         verbose=verbose
     ).fit_transform(E)
     plt.scatter(E_umap[:, 0], E_umap[:, 1], s=1);
-    plt.savefig('img/umap_yelp.png')
+    plt.savefig(f'img/{timestamp}/umap_yelp.png')
     print("Searching K for UMAP vectors.")
     umap_ssd, umap_silhouette = kmeans_search(E_umap, K)
     plot_kmeans(K,umap_ssd,"elbow","img/umap_ssd")
-    plot_kmeans(K,umap_silhouette,"silhouette","img/umap_silhouette")
+    plot_kmeans(K,umap_silhouette,"silhouette", f"img/{timestamp}/umap_silhouette")
 
 
