@@ -278,7 +278,7 @@ def simple_lemmatizer(text:str) -> str:
 
 def remove_stopwords(text:str, 
                      stopword_list:List[str], 
-                     tokenizer::Callable[[str], List[str]], 
+                     tokenizer:Callable[[str], List[str]], 
                      is_lower_case:bool=False) -> str:
     """Removing the stopwords.
             
