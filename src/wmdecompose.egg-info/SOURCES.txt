@@ -12,3 +12,4 @@ src/wmdecompose.egg-info/PKG-INFO
 src/wmdecompose.egg-info/SOURCES.txt
 src/wmdecompose.egg-info/dependency_links.txt
 src/wmdecompose.egg-info/top_level.txt
+src/wmdecompose.egg-info/.ipynb_checkpoints/PKG-INFO-checkpoint
