@@ -198,8 +198,8 @@ with open(f'{outpath}WMDmodel.pkl', 'wb') as handle:
     pickle.dump(wmd_pairs_flow, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 top_n = 100
-top_words_source_df = get_top_words(wmd_pairs_flow, top_n, True) 
-top_words_sink_df = get_top_words(wmd_pairs_flow, top_n, False) 
+top_words_source_df, source_to_sink = get_top_words(wmd_pairs_flow, top_n, True) 
+top_words_sink_df, sink_to_source = get_top_words(wmd_pairs_flow, top_n, False) 
 
 print(f"Saving top {top_n} words both ways.")
 top_words_source_df.to_csv(f"{outpath}source_to_sink.csv", index=False)
@@ -237,5 +237,5 @@ with open(f'{outpath}neg_to_pos_clusters.pkl', 'wb') as handle:
     
 if pairing != 'full':
     print("Preparing and saving boxplots.")
-    plot_box(wmd_pairs_flow, sample, c1, 500,1000, "city", "distance", True, f'{outpath}pos_to_neg_boxplots.png', True, False)
-    plot_box(wmd_pairs_flow, sample, c2, 500,1000, "city", "distance", False, f'{outpath}pos_to_neg_boxplots.png', True, False)
+    plot_box(wmd_pairs_flow, pairs, sample, c1, 500,1000, "city", "distance", True, f'{outpath}pos_to_neg_boxplots.png', True, False)
+    plot_box(wmd_pairs_flow, pairs, sample, c2, 500,1000, "city", "distance", False, f'{outpath}pos_to_neg_boxplots.png', True, False)

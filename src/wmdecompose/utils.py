@@ -1,5 +1,5 @@
 from .documents import Document
-from .models import WMD, LC_RWMD
+from .models import WMD
 from .gale_shapeley import Matcher
 
 from bs4 import BeautifulSoup
@@ -53,7 +53,9 @@ def get_pairs(pairing:str = 'gs',
         pairs = [(i,j) for i in source_idx for j in sink_idx]
     return pairs
 
-def get_top_words(wmd_model:WMD, top_n:int=100, source:bool=True) -> pd.DataFrame:
+def get_top_words(wmd_model:WMD, 
+                  top_n:int=100, 
+                  source:bool=True) -> Tuple[pd.DataFrame, Dict[str,float]]:
     """Function for getting the top words composing the distances from a source set to a sink set or vice versa.
     
     Args:
@@ -64,6 +66,8 @@ def get_top_words(wmd_model:WMD, top_n:int=100, source:bool=True) -> pd.DataFram
     
     Return:
       top_words: A pandas dataframe with the top n words contributing to the distance from one set of documents to another.
+      source_to_sink: A dictionary with the top n words that add the most distance from source to sink.
+      sink_to_source: A dictionary with the top n words that add the most distance from sink to source.
     
     """
     
@@ -71,17 +75,27 @@ def get_top_words(wmd_model:WMD, top_n:int=100, source:bool=True) -> pd.DataFram
         source_to_sink = {k: v for k, v in sorted(wmd_model.wd_source_diff.items(), 
                                                   key=lambda item: item[1], reverse=True)[:top_n]}
         top_words = pd.DataFrame.from_dict(source_to_sink, orient='index', columns = ["distance"])
+        return top_words, source_to_sink
 
     else:
-        sink_to_source = {k: v for k, v in sorted(wmd_pairs_flow.wd_sink_diff.items(), 
+        sink_to_source = {k: v for k, v in sorted(wmd_model.wd_sink_diff.items(), 
                                                   key=lambda item: item[1], reverse=True)[:top_n]}
         top_words = pd.DataFrame.from_dict(sink_to_source, orient='index', columns = ["distance"])
+        top_words['word'] = top_words.index
+        return top_words, sink_to_source
 
-    top_words['word'] = top_words.index
-    return top_words
-
-def plot_box(wmd_model:WMD, data:pd.DataFrame, clusters:pd.DataFrame, idx_low:int, idx_high:int, x_var:str, y_var:str, 
-             source:bool=True, path:str="/", save:bool=True, return_val:bool=False) -> sns.axisgrid.FacetGrid:
+def plot_box(wmd_model:WMD, 
+             pairs: List[Tuple[int, int]], 
+             data:pd.DataFrame, 
+             clusters:pd.DataFrame, 
+             idx_low:int, 
+             idx_high:int, 
+             x_var:str, 
+             y_var:str, 
+             source:bool=True, 
+             path:str="/", 
+             save:bool=True, 
+             return_val:bool=False) -> sns.axisgrid.FacetGrid:
     """Function for producing a seaborn facetgrid organized by cluster, with a bimodal categorical variable on the x-axis and the distancescontributed by different words in each clusters on the y-axis.
     
     Args:
@@ -114,6 +128,7 @@ def plot_box(wmd_model:WMD, data:pd.DataFrame, clusters:pd.DataFrame, idx_low:in
         dists[x_var] = data[idx_low:idx_high][x_var]
     dists_long = pd.melt(dists, id_vars=[x_var]).rename(columns={"variable":"cluster"})
     dists_long = dists_long[dists_long.value != 0]
+    print(dists_long)
 
     g = sns.catplot(x=x_var, 
                     y="value", 
