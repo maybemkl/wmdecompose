@@ -23,28 +23,21 @@ import seaborn as sns
 def get_pairs(pairing:str = 'gs', 
               source_docs:List[Document] = [], 
               sink_docs:List[Document] = [],
-              source_nbow:csr_matrix = csr_matrix,
-              sink_nbow:csr_matrix = csr_matrix) -> List[Tuple[int, int]]:
+              engaged:Dict[int,int] = {}) -> List[Tuple[int, int]]:
     """Wrapper for extracting different types of pairs, using the Galey-Shapeley algorithm, random pairing or full pairing.
     
     Args:
       pairing: String defining what pairing to use. Alternatives are 'gs' for Gale-Shapeley, 'random' or 'full'.
       source_docs: A list of the documents in the source set.
       sink_docs: A list of the documents in the sink set.
-      source_nbow: A csr_matrix with nbow or other vectorized (such as Tf-Idf) matrix representation of the documents in source_set.
-      sink_nbow: A csr_matrix with nbow or other vectorized (such as Tf-Idf) matrix representation of the documents in sink_set.
-    
+      engaged: Dictionary with the indexes for the final engagements between guys and gals.
+
+
     Return:
       pairs: A list of tuples with a pair of integers in each tuple indicating the paired documents.
     """
     
     if pairing == 'gs':
-        lc_rwmd = LC_RWMD(source_docs, sink_docs,source_nbow,sink_nbow,E)
-        lc_rwmd.get_D()
-        print("Running Gale-Shapeley pairing.")
-        matcher = Matcher(lc_rwmd.D)
-        engaged = matcher.matchmaker()
-        print(f"Pairing is stable: {matcher.check()}")
         pairs = [(k, v) for k, v in engaged.items()]
     if pairing == 'random':
         print("Running random pairing.")
