@@ -35,9 +35,9 @@ vecs = sys.argv[1]
 pairing = sys.argv[2]
 reduced = sys.argv[3]
 timestamp = f'wmdecomp_{datetime.now().strftime("%d%m%Y_%H%M%S")}'
-outpath = f'{outpath}'
+outpath = f'experiments/{timestamp}_{vecs}_{pairing}_reduced-{reduced}_/'
 
-os.mkdir(f'experiments/{timestamp}')
+os.mkdir(outpath)
 
 print(f"Beginning WMD pipeline with {vecs} vectors and {pairing} pairing.")
 print(f"Vector reduction: {reduced}")
@@ -130,7 +130,7 @@ if vecs == 'tsne':
     verbose = 1
     E_tsne = TSNE(n_components=n_components, method=method, verbose=verbose).fit_transform(E)
     plt.scatter(E_tsne[:, 0], E_tsne[:, 1], s=1);
-    plt.savefig(f'experiments/{timestamp}/tsne_yelp.png')
+    plt.savefig(f'{outpath}tsne_yelp.png')
     if reduced == True:
         E = E_tsne
     
@@ -159,7 +159,7 @@ if vecs == 'umap':
         verbose=verbose
     ).fit_transform(E)
     plt.scatter(E_umap[:, 0], E_umap[:, 1], s=1);
-    plt.savefig(f'experiments/{timestamp}/umap_yelp.png')
+    plt.savefig(f'{outpath}umap_yelp.png')
     if reduced == True:
         E = E_umap
 
@@ -229,7 +229,7 @@ with open(f'{outpath}neg_to_pos_clusters.pkl', 'wb') as handle:
     pickle.dump(c2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     
-if pairing is not 'full':
+if pairing != 'full':
     print("Preparing and saving boxplots.")
     plot_box(wmd_pairs_flow, sample, c1, 500,1000, "city", "distance", True, f'{outpath}pos_to_neg_boxplots.png', True, False)
     plot_box(wmd_pairs_flow, sample, c2, 500,1000, "city", "distance", False, f'{outpath}pos_to_neg_boxplots.png', True, False)
