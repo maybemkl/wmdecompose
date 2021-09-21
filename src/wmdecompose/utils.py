@@ -1,9 +1,14 @@
+from .documents import Document
+from .models import WMD, LC_RWMD
+from .gale_shapeley import Matcher
+
 from bs4 import BeautifulSoup
 from collections import Counter
 from gensim.models.phrases import Phrases, Phraser
 from itertools import islice
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize.toktok import ToktokTokenizer
+from random import shuffle
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from typing import Callable, DefaultDict, Dict, List, Tuple
@@ -12,6 +17,128 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import re
+
+
+def get_pairs(pairing:str = 'gs', source_docs:List[Document] = [], sink_docs:List[Document] = []) -> List[Tuple[int, int]]:
+    """Wrapper for extracting different types of pairs, using the Galey-Shapeley algorithm, random pairing or full pairing.
+    
+    Args:
+      pairing: String defining what pairing to use. Alternatives are 'gs' for Gale-Shapeley, 'random' or 'full'.
+      source_docs: A list of the documents in the source set.
+      sink_docs: A list of the documents in the sink set.
+      
+    
+    Return:
+      pairs: A list of tuples with a pair of integers in each tuple indicating the paired documents.
+    """
+    
+    if pairing == 'gs':
+        lc_rwmd = LC_RWMD(pos_docs, neg_docs,pos_nbow,neg_nbow,E)
+        lc_rwmd.get_D()
+        print("Running Gale-Shapeley pairing.")
+        matcher = Matcher(lc_rwmd.D)
+        engaged = matcher.matchmaker()
+        print(f"Pairing is stable: {matcher.check()}")
+        pairs = [(k, v) for k, v in engaged.items()]
+    if pairing == 'random':
+        print("Running random pairing.")
+        source_idx = list(range(0,len(source_docs)))
+        sink_idx = list(range(0,len(sink_docs)))
+        shuffle(source_idx)
+        shuffle(sink_idx)
+        pairs = list(zip(source_idx, sink_idx))
+    if pairing == 'full':
+        print("Running full pairing.")
+        source_idx = list(range(0,len(source_docs)))
+        sink_idx = list(range(0,len(sink_docs)))
+        pairs = [(i,j) for i in source_idx for j in sink_idx]
+    return pairs
+
+def get_top_words(wmd_model:WMD, top_n:int=100, source:bool=True) -> pd.DataFrame:
+    """Function for getting the top words composing the distances from a source set to a sink set or vice versa.
+    
+    Args:
+      wmd_model: A WMD model with word decomposing.
+      top_n: An integer indicating how many words to return.
+      source: A boolean indicating whether to look for source to sink (True) or sink to source (False).
+      
+    
+    Return:
+      top_words: A pandas dataframe with the top n words contributing to the distance from one set of documents to another.
+    
+    """
+    
+    if source:
+        source_to_sink = {k: v for k, v in sorted(wmd_model.wd_source_diff.items(), 
+                                                  key=lambda item: item[1], reverse=True)[:top_n]}
+        top_words = pd.DataFrame.from_dict(source_to_sink, orient='index', columns = ["distance"])
+
+    else:
+        sink_to_source = {k: v for k, v in sorted(wmd_pairs_flow.wd_sink_diff.items(), 
+                                                  key=lambda item: item[1], reverse=True)[:top_n]}
+        top_words = pd.DataFrame.from_dict(sink_to_source, orient='index', columns = ["distance"])
+
+    top_words['word'] = top_words.index
+    return top_words
+
+def plot_box(wmd_model:WMD, data:pd.DataFrame, clusters:pd.DataFrame, idx_low:int, idx_high:int, x_var:str, y_var:str, 
+             source:bool=True, path:str="/", save:bool=True, return_val:bool=False) -> sns.axisgrid.FacetGrid:
+    """Function for producing a seaborn facetgrid organized by cluster, with a bimodal categorical variable on the x-axis and the distancescontributed by different words in each clusters on the y-axis.
+    
+    Args:
+      wmd_model: A WMD model with word decomposing.
+      data: A pandas dataframe with the original data used for the WMD model
+      clusters: A pandas dataframe with the 
+      idx_low: An integer indicating the upper bound of the first category and lower bound of the second in 'data'.
+      idx_high: An integer indicating the upper bound of the first category in 'data'.
+      x_var: A string with the column name of the values to display on the x-axis of the facetgrid.
+      y_var: A string with the values to display on the y-axis of the facetgrid.
+      source: A boolean indicating whether to look for source to sink (True) or sink to source (False).
+      path: A path for saving the plot (optional).
+      save: A boolean indicating whether to save the plot.
+      return_val: A boolean indicating whether to return the plot.
+    
+    Return:
+      g: A seaborn facetgrid plot.
+    """
+
+    if source:
+        dists = pd.DataFrame(wmd_model.source_feat)
+    else:
+        dists = pd.DataFrame(wmd_model.sink_feat)
+    dists.index = [p[0] for p in pairs]
+    dists = dists.sort_index()
+    dists = dists[clusters.columns]
+    if source:
+        dists[x_var] = data[:idx_low][x_var]
+    else:
+        dists[x_var] = data[idx_low:idx_high][x_var]
+    dists_long = pd.melt(dists, id_vars=[x_var]).rename(columns={"variable":"cluster"})
+    dists_long = dists_long[dists_long.value != 0]
+
+    g = sns.catplot(x=x_var, 
+                    y="value", 
+                    col="cluster", 
+                    data=dists_long, 
+                    kind="box",
+                    height=5, 
+                    aspect=.7,
+                    col_wrap=5,
+                    margin_titles=True);
+    g.map_dataframe(sns.stripplot, 
+                    x=x_var, 
+                    y="value", 
+                    palette=["#404040"], 
+                    alpha=0.2, dodge=True)
+    g.set_axis_labels(x_var, y_var)
+    for ax in g.axes.flatten():
+        ax.tick_params(labelbottom=True)
+
+    if save:
+        g.savefig(path, dpi=400)
+    
+    if return_val:
+        return g
 
 def kmeans_search(E:np.array, K:List[int]) -> Tuple[List[float], List[float]]:
     """Grid search for Kmeans models.
