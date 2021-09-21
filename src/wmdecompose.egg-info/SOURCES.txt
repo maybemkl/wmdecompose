@@ -8,6 +8,7 @@ src/wmdecompose/documents.py
 src/wmdecompose/gale_shapeley.py
 src/wmdecompose/models.py
 src/wmdecompose/utils.py
+src/wmdecompose.egg-info/.DS_Store
 src/wmdecompose.egg-info/PKG-INFO
 src/wmdecompose.egg-info/SOURCES.txt
 src/wmdecompose.egg-info/dependency_links.txt
