@@ -17,9 +17,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import re
+import seaborn as sns
 
-
-def get_pairs(pairing:str = 'gs', source_docs:List[Document] = [], sink_docs:List[Document] = []) -> List[Tuple[int, int]]:
+def get_pairs(pairing:str = 'gs', 
+              source_docs:List[Document] = [], 
+              sink_docs:List[Document] = []) -> List[Tuple[int, int]]:
     """Wrapper for extracting different types of pairs, using the Galey-Shapeley algorithm, random pairing or full pairing.
     
     Args:
