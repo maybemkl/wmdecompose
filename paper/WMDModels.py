@@ -170,7 +170,13 @@ cluster2words = defaultdict(list)
 for key, value in word2cluster.items():
     cluster2words[value].append(key)
     
-pairs = get_pairs(pairing, pos_docs, neg_docs)
+if pairing = 'gs':
+    lc_rwmd = LC_RWMD(source_docs, sink_docs,source_nbow,sink_nbow,E)
+    lc_rwmd.get_D()
+    print("Running Gale-Shapeley pairing.")
+    matcher = Matcher(lc_rwmd.D)
+    engaged = matcher.matchmaker()
+pairs = get_pairs(pairing, pos_docs, neg_docs, engaged)
 
 print(f"Prepared {len(pairs)} pairs.")
 print("Initializing WMD.")
