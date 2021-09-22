@@ -75,6 +75,7 @@ def get_top_words(wmd_model:WMD,
         source_to_sink = {k: v for k, v in sorted(wmd_model.wd_source_diff.items(), 
                                                   key=lambda item: item[1], reverse=True)[:top_n]}
         top_words = pd.DataFrame.from_dict(source_to_sink, orient='index', columns = ["distance"])
+        top_words['word'] = top_words.index
         return top_words, source_to_sink
 
     else:
@@ -83,76 +84,6 @@ def get_top_words(wmd_model:WMD,
         top_words = pd.DataFrame.from_dict(sink_to_source, orient='index', columns = ["distance"])
         top_words['word'] = top_words.index
         return top_words, sink_to_source
-
-def plot_box(wmd_model:WMD, 
-             pairs: List[Tuple[int, int]], 
-             data:pd.DataFrame, 
-             clusters:pd.DataFrame, 
-             idx_low:int, 
-             idx_high:int, 
-             x_var:str, 
-             y_var:str, 
-             source:bool=True, 
-             path:str="/", 
-             save:bool=True, 
-             return_val:bool=False) -> sns.axisgrid.FacetGrid:
-    """Function for producing a seaborn facetgrid organized by cluster, with a bimodal categorical variable on the x-axis and the distancescontributed by different words in each clusters on the y-axis.
-    
-    Args:
-      wmd_model: A WMD model with word decomposing.
-      data: A pandas dataframe with the original data used for the WMD model
-      clusters: A pandas dataframe with the 
-      idx_low: An integer indicating the upper bound of the first category and lower bound of the second in 'data'.
-      idx_high: An integer indicating the upper bound of the first category in 'data'.
-      x_var: A string with the column name of the values to display on the x-axis of the facetgrid.
-      y_var: A string with the values to display on the y-axis of the facetgrid.
-      source: A boolean indicating whether to look for source to sink (True) or sink to source (False).
-      path: A path for saving the plot (optional).
-      save: A boolean indicating whether to save the plot.
-      return_val: A boolean indicating whether to return the plot.
-    
-    Return:
-      g: A seaborn facetgrid plot.
-    """
-
-    if source:
-        dists = pd.DataFrame(wmd_model.source_feat)
-    else:
-        dists = pd.DataFrame(wmd_model.sink_feat)
-    dists.index = [p[0] for p in pairs]
-    dists = dists.sort_index()
-    dists = dists[clusters.columns]
-    if source:
-        dists[x_var] = data[:idx_low][x_var]
-    else:
-        dists[x_var] = data[idx_low:idx_high][x_var]
-    dists_long = pd.melt(dists, id_vars=[x_var]).rename(columns={"variable":"cluster"})
-    dists_long = dists_long[dists_long.value != 0]
-    print(dists_long)
-
-    g = sns.catplot(x=x_var, 
-                    y="value", 
-                    col="cluster", 
-                    data=dists_long, 
-                    kind="box",
-                    height=5, 
-                    aspect=.7,
-                    col_wrap=5,
-                    margin_titles=True);
-    g.map_dataframe(sns.stripplot, 
-                    x=x_var, 
-                    y="value", 
-                    palette=["#404040"], 
-                    alpha=0.2, dodge=True)
-    g.set_axis_labels(x_var, y_var)
-    for ax in g.axes.flatten():
-        ax.tick_params(labelbottom=True)
-
-    if save:
-        g.savefig(path, dpi=400)
-    
-    if return_val:
-        return g
 
 def kmeans_search(E:np.array, K:List[int]) -> Tuple[List[float], List[float]]:
     """Grid search for Kmeans models.
