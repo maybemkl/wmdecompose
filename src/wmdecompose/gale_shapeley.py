@@ -70,8 +70,8 @@ class Matcher():
                         # Look again
                         guysfree.append(guy)
         self.engaged = engaged
-        #engaged_int = {int(k): int(engaged[k]) for k in engaged.keys()}
-        engaged_int = {int(engaged[k]): int(k) for k in engaged.keys()}
+        engaged_int = {int(k): int(engaged[k]) for k in engaged.keys()}
+        #engaged_int = {int(engaged[k]): int(k) for k in engaged.keys()}
         return engaged_int
         
     def check(self) -> bool:
