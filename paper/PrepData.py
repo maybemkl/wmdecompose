@@ -50,7 +50,7 @@ yelp_merged = yelp_merged.rename(columns={"stars_x":"stars"})
 
 print(f"Merged data shape: {yelp_merged.shape}")
 
-s_size = 250
+s_size = 1000
 rs = 42
 print(f"Sampling data with sample size {s_size} and random seed {rs}.")
 sample = yelp_merged.groupby(["city", "stars"]).sample(n=s_size, random_state=rs).reset_index()
@@ -99,4 +99,4 @@ sample["sentiment"] = ['positive' if s == 5 else 'negative' for s in sample['sta
 sample = sample.sort_values("sentiment").reset_index()
 
 print("Saving data.")
-sample.to_pickle('data/yelp_sample_categories.pkl')
+sample.to_pickle(f'data/yelp_sample_categories_{s_size}.pkl')
