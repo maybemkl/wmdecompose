@@ -35,16 +35,13 @@ vecs = sys.argv[1]
 pairing = sys.argv[2]
 reduced = sys.argv[3]
 timestamp = f'wmdecomp_{datetime.now().strftime("%d%m%Y_%H%M%S")}'
-outpath = f'experiments/{timestamp}_{vecs}_{pairing}_reduced-{reduced}_/'
-
-os.mkdir(outpath)
 
 print(f"Beginning WMD pipeline with {vecs} vectors and {pairing} pairing.")
 print(f"Vector reduction: {reduced}")
 
 PATH = "data/"
 print("Loading and preparing data.")
-sample = pd.read_pickle(f"{PATH}yelp_sample.pkl")
+sample = pd.read_pickle(f"{PATH}yelp_sample_categories_1000.pkl")
 tokenizer = ToktokTokenizer()
 
 pos = sample[sample.sentiment == "positive"].reset_index(drop=True)
@@ -61,6 +58,10 @@ neg_sample = [" ".join(doc) for doc in neg_tok]
 
 print(f"Positive samples: {len(pos_sample)}")
 print(f"Negative samples: {len(neg_sample)}")
+
+corpus_size = len(pos_sample) + len(neg_sample)
+outpath = f'experiments/{timestamp}_{vecs}_{pairing}_reduced-{reduced}_ssize-{corpus_size}_/'
+os.mkdir(outpath)
 
 finetuned = True
 
@@ -85,9 +86,14 @@ print(oov[:50])
 print("Tokenizing samples.")
 pos_sample = list(map(lambda x: remove_oov(x, tokenizer, oov), pos_sample))
 neg_sample = list(map(lambda x: remove_oov(x, tokenizer, oov), neg_sample))
+print(pos_sample[0])
+
+print("Removing 'u'.")
+extras = ['u', '[', ']']
+pos_sample = [" ".join([w for w in doc.split() if w not in extras]) for doc in pos_sample]
+neg_sample = [" ".join([w for w in doc.split() if w not in extras]) for doc in neg_sample]
 
 print("Example of tokenized positive sample:")
-print(pos_sample[5])
 
 print("Vectorizing corpus.")
 corpus = pos_sample + neg_sample
@@ -176,7 +182,10 @@ if pairing == 'gs':
     print("Running Gale-Shapeley pairing.")
     matcher = Matcher(lc_rwmd.D)
     engaged = matcher.matchmaker()
-pairs = get_pairs(pairing, pos_docs, neg_docs, engaged)
+    pairs = get_pairs(pairing, pos_docs, neg_docs, engaged)
+    
+else:
+    pairs = get_pairs(pairing, pos_docs, neg_docs)
 
 print(f"Prepared {len(pairs)} pairs.")
 print("Initializing WMD.")
@@ -188,7 +197,7 @@ wmd_pairs_flow.get_distances(decompose = True,
                              w2c = word2cluster, 
                              c2w = cluster2words,
                              thread = False,
-                             relax = True)
+                             relax = False)
 
 print("Getting differences in flow.")
 wmd_pairs_flow.get_differences()
@@ -233,9 +242,3 @@ with open(f'{outpath}pos_to_neg_clusters.pkl', 'wb') as handle:
 c2.to_csv(f'{outpath}neg_to_pos_clusters.csv', index=False)
 with open(f'{outpath}neg_to_pos_clusters.pkl', 'wb') as handle:
     pickle.dump(c2, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    
-if pairing != 'full':
-    print("Preparing and saving boxplots.")
-    plot_box(wmd_pairs_flow, pairs, sample, c1, 500,1000, "city", "distance", True, f'{outpath}pos_to_neg_boxplots.png', True, False)
-    plot_box(wmd_pairs_flow, pairs, sample, c2, 500,1000, "city", "distance", False, f'{outpath}pos_to_neg_boxplots.png', True, False)
