@@ -33,7 +33,8 @@ random.seed(42)
 
 vecs = sys.argv[1]
 pairing = sys.argv[2]
-reduced = sys.argv[3]
+relax = sys.argv[3]
+reduced = sys.argv[4]
 timestamp = f'wmdecomp_{datetime.now().strftime("%d%m%Y_%H%M%S")}'
 
 print(f"Beginning WMD pipeline with {vecs} vectors and {pairing} pairing.")
@@ -60,7 +61,7 @@ print(f"Positive samples: {len(pos_sample)}")
 print(f"Negative samples: {len(neg_sample)}")
 
 corpus_size = len(pos_sample) + len(neg_sample)
-outpath = f'experiments/{timestamp}_{vecs}_{pairing}_reduced-{reduced}_ssize-{corpus_size}_/'
+outpath = f'experiments/{timestamp}_{vecs}_{pairing}_relax-{relax}_reduced-{reduced}_ssize-{corpus_size}_/'
 os.mkdir(outpath)
 
 finetuned = True
@@ -197,7 +198,7 @@ wmd_pairs_flow.get_distances(decompose = True,
                              w2c = word2cluster, 
                              c2w = cluster2words,
                              thread = False,
-                             relax = False)
+                             relax = relax)
 
 print("Getting differences in flow.")
 wmd_pairs_flow.get_differences()
