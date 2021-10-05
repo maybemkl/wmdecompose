@@ -27,6 +27,8 @@ pip install .
 
 ## Examples
 
+
+<img src="paper/img/yelp_word_decomposition.png" width="200" />
 ![](paper/img/yelp_word_decomposition.png =250x250)
 
 ![](paper/img/yelp_clusters.png =250x250)
