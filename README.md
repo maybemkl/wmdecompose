@@ -27,9 +27,9 @@ pip install .
 
 ## Examples
 
-![](paper/img/yelp_word_decomposition.png | width=50)
+![](paper/img/yelp_word_decomposition.png){:height="50%" width="50%"}
 
-![](paper/img/yelp_clusters.png | width=50)
+![](paper/img/yelp_clusters.png){:height="50%" width="50%"}
 
 ## Usage
 
