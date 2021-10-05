@@ -28,6 +28,7 @@ pip install .
 ## Examples
 
 Using the well-known review dataset from Yelp, filtered to reviews written after 2017 in Atlanta or Portland and with one or five stars, wmdecompose gives the following words as top contributors to the overall WMD when moving from positive to negative reviews (left column) and vice versa (right column):
+
 <img src="paper/img/yelp_word_decomposition.png" width="300" />
 
 Clustering the word-level distances using t-SNE and K-means, we get the following cluster-level distances, with cluster keywords organized by intra-cluster word-level distances for positive to negative (top) and negative to positive (bottom):
