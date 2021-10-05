@@ -29,7 +29,7 @@ pip install .
 
 
 <img src="paper/img/yelp_word_decomposition.png" width="300" />
-<img src="paper/img/yelp_clusters.png" width="500" />
+<img src="paper/img/yelp_clusters.png" width="800" />
 
 ## Usage
 
