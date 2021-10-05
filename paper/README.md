@@ -5,3 +5,5 @@ The WMDecompose Python library is introduced in a paper published in the Proceed
 The paper can be cited as follows:
 
 Brunila, M., and LaViolette, J. (2021). WMDecompose: A Framework for Leveraging the Interpretable Properties of Word Mover’s Distance in Sociocultural Analysis. _Proceedings of the_5th Joint SIGHUM Workshop on Computational Linguistics for Cultural Heritage, Social Sciences, Humanities and Literature_, START_PAGE–END_PAGE.
+
+The Google News word2vec model, which we finetune for analysis, can be downloaded [here](https://github.com/mmihaltz/word2vec-GoogleNews-vectors).
