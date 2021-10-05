@@ -23,5 +23,22 @@ pip install .
 
 ```
 
-## Use
+## Usage
 
+## Citation
+
+If using the wmdecompose package, please cite the original paper:
+
+
+```bibtex
+
+@inproceedings{Brunila2021WMDecompose,
+    title = {WMDecompose: A Framework for Leveraging the InterpretableProperties of Word Mover’s Distance in Sociocultural Analysis},
+    booktitle = {Proceedings of the {Fifth} {Workshop} on {Computational} {Linguistics} for {Cultural Heritage}, {Social Sciences}, {Humanities} and {Literature}},
+    publisher = {Association for Computational Linguistics},
+	author = {Brunila, Mikael and LaViolette, Jack},
+	month = nov,
+	year = {2021}
+}
+
+```
