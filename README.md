@@ -2,7 +2,7 @@
 
 wmdecompose is a Python package for leveraging the inherent interpretability of Word Mover's Distance (WMD), which to date has not been enabled in any of the existing implementations of the framework. 
 
-The main idea with wmdecompose, is that the WMD between a pair of documents or two sets of documents can be decomposed into word-level distances. This way, we gain an understanding of not just the overall semantic distance between two sets of documents, but also of the distance that individual words contribute to the total WMD. Furthermore, the package allows users to cluster words, so that word-level distances can be understood through coherent and interpretable wholes.
+The main idea behind wmdecompose is that the WMD between a pair of documents or two sets of documents can be decomposed into word-level distances. This way, we gain an understanding of not just the overall semantic distance between two sets of documents, but also of the distance that individual words contribute to the total WMD. Furthermore, the package allows users to cluster words, so that word-level distances can be understood through coherent and interpretable wholes.
 
 The package was originally published as part of the paper ["WMDecompose: A Framework for Leveraging the InterpretableProperties of Word Mover’s Distance in Sociocultural Analysis"](https://github.com/maybemkl/wmdecompose/tree/master/paper) as part of the [SIGHUM workshop](https://sighum.wordpress.com/events/latech-clfl-2021/) of the [2021 EMNLP conference](https://2021.emnlp.org/). Notebooks and scripts for replicating the paper can be found in the [paper](https://github.com/maybemkl/wmdecompose/tree/master/paper) subfolder of this repo.
 
